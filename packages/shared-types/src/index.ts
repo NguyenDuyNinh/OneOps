@@ -1,5 +1,6 @@
 // Barrel export — Nguồn sự thật duy nhất cho tất cả types
 export * from './user.types';
+export * from './auth.types';
 export * from './attendance.types';
 export * from './task.types';
 export * from './chat.types';

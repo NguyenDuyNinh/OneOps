@@ -1,5 +1,11 @@
 export const DEFAULT_PAGE_SIZE = 10;
 
+/**
+ * Base URL mặc định của NestJS API khi chạy local.
+ * Production BẮT BUỘC khai báo `NEXT_PUBLIC_API_BASE_URL` trong môi trường.
+ */
+export const DEFAULT_API_BASE_URL = "http://localhost:4000";
+
 /** Timeout chung cho API client (ms). */
 export const API_TIMEOUT_MS = 30_000;
 

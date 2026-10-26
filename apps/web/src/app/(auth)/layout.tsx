@@ -17,7 +17,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               {/* <!-- ===== Common Grid Shape Start ===== --> */}
               <GridShape />
               <div className="flex max-w-xs flex-col items-center">
-                <Link href="/" className="mb-4 block">
+                <Link href="/admin" className="mb-4 block">
                   <Image
                     width={220}
                     height={56}

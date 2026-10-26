@@ -1,9 +1,9 @@
-import SignInForm from "@/features/auth/SignInForm";
+import { SignInForm } from "@/features/auth";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SignIn Page | Hoàng Hà Digital",
-  description: "Trang Signin Page Hoàng Hà Digital Dashboard Template",
+  title: "Đăng nhập | OneOps",
+  description: "Đăng nhập vào hệ thống vận hành nội bộ OneOps",
 };
 
 export default function SignIn() {

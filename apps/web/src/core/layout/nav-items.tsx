@@ -45,44 +45,47 @@ export type NavSection = {
  * - Bấm tile trên rail → sang thẳng `path` của nhóm.
  * - Nút mở rộng đáy rail → panel hiện các `items` để chọn trang chi tiết.
  * Thêm nghiệp vụ mới: thêm 1 entry + route tương ứng.
+ *
+ * Toàn bộ trang quản trị nằm dưới tiền tố `/admin`.
+ * Riêng nhóm Auth trỏ ra ngoài khu vực bảo vệ (`/signin`, `/signup`).
  */
 export const navSections: NavSection[] = [
   {
     name: "General",
     icon: <GridIcon />,
-    path: "/",
+    path: "/admin",
     items: [
-      { name: "Ecommerce", path: "/", icon: <DollarLineIcon />, pro: false },
-      { name: "Blank", path: "/blank", icon: <FileIcon />, pro: false },
-      { name: "Calendar", path: "/calendar", icon: <CalenderIcon />, pro: false },
+      { name: "Ecommerce", path: "/admin", icon: <DollarLineIcon />, pro: false },
+      { name: "Blank", path: "/admin/blank", icon: <FileIcon />, pro: false },
+      { name: "Calendar", path: "/admin/calendar", icon: <CalenderIcon />, pro: false },
     ],
   },
-  { name: "Users", icon: <UserCircleIcon />, path: "/profile" },
+  { name: "Users", icon: <UserCircleIcon />, path: "/admin/profile" },
   {
     name: "Charts",
     icon: <PieChartIcon />,
-    path: "/line-chart",
+    path: "/admin/line-chart",
     items: [
-      { name: "Line Chart", path: "/line-chart", icon: <GridIcon />, pro: false },
-      { name: "Bar Chart", path: "/bar-chart", icon: <PieChartIcon />, pro: false },
+      { name: "Line Chart", path: "/admin/line-chart", icon: <GridIcon />, pro: false },
+      { name: "Bar Chart", path: "/admin/bar-chart", icon: <PieChartIcon />, pro: false },
     ],
   },
   {
     name: "Ui Elements",
     icon: <BoxCubeIcon />,
-    path: "/alerts",
+    path: "/admin/alerts",
     items: [
-      { name: "Alerts", path: "/alerts", icon: <AlertIcon />, pro: false },
-      { name: "Avatars", path: "/avatars", icon: <UserIcon />, pro: false },
-      { name: "Badge", path: "/badge", icon: <CheckCircleIcon />, pro: false },
-      { name: "Buttons", path: "/buttons", icon: <BoltIcon />, pro: false },
-      { name: "Images", path: "/images", icon: <BoxIcon />, pro: false },
-      { name: "Modals", path: "/modals", icon: <DocsIcon />, pro: false },
+      { name: "Alerts", path: "/admin/alerts", icon: <AlertIcon />, pro: false },
+      { name: "Avatars", path: "/admin/avatars", icon: <UserIcon />, pro: false },
+      { name: "Badge", path: "/admin/badge", icon: <CheckCircleIcon />, pro: false },
+      { name: "Buttons", path: "/admin/buttons", icon: <BoltIcon />, pro: false },
+      { name: "Images", path: "/admin/images", icon: <BoxIcon />, pro: false },
+      { name: "Modals", path: "/admin/modals", icon: <DocsIcon />, pro: false },
     ],
   },
-  { name: "Forms", icon: <ListIcon />, path: "/form-elements" },
-  { name: "Tables", icon: <TableIcon />, path: "/basic-tables" },
-  { name: "Pages", icon: <PageIcon />, path: "/blank" },
+  { name: "Forms", icon: <ListIcon />, path: "/admin/form-elements" },
+  { name: "Tables", icon: <TableIcon />, path: "/admin/basic-tables" },
+  { name: "Pages", icon: <PageIcon />, path: "/admin/blank" },
   {
     name: "Auth",
     icon: <LockIcon />,
@@ -92,6 +95,6 @@ export const navSections: NavSection[] = [
       { name: "Sign Up", path: "/signup", icon: <UserCircleIcon />, pro: false },
     ],
   },
-  { name: "Media", icon: <VideoIcon />, path: "/videos" },
-  { name: "Blank", icon: <FileIcon />, path: "/blank" },
+  { name: "Media", icon: <VideoIcon />, path: "/admin/videos" },
+  { name: "Blank", icon: <FileIcon />, path: "/admin/blank" },
 ];

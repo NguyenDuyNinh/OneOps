@@ -120,6 +120,9 @@ importers:
       '@fullcalendar/timegrid':
         specifier: ^6.1.19
         version: 6.1.22(@fullcalendar/core@6.1.22)
+      '@oneops/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@react-jvectormap/core':
         specifier: ^1.0.4
         version: 1.0.4(jquery@3.7.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -208,10 +211,16 @@ importers:
       '@prisma/client':
         specifier: ^5.21.1
         version: 5.22.0(prisma@5.22.0)
+      bcrypt:
+        specifier: ^5.1.1
+        version: 5.1.1(supports-color@8.1.1)
       dotenv:
         specifier: ^18.0.9
         version: 18.0.9
     devDependencies:
+      '@types/bcrypt':
+        specifier: ^5.0.2
+        version: 5.0.2
       prisma:
         specifier: ^5.21.1
         version: 5.22.0

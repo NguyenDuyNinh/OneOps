@@ -15,4 +15,23 @@ export class UsersService {
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
+
+  /**
+   * Chỉ dùng cho luồng đăng nhập: cần passwordHash để so khớp.
+   * Không được trả method này ra ngoài module Auth (không expose qua controller).
+   */
+  async findAuthUserByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
+        passwordHash: true,
+        isActive: true,
+      },
+    });
+  }
 }

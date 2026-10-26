@@ -1,6 +1,8 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
 import { Public } from '../../core/decorators/public.decorator';
+import { LoginResponse } from '@oneops/shared-types';
 
 @Controller('auth')
 export class AuthController {
@@ -8,7 +10,8 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  async login(@Body('email') email: string) {
-    return this.authService.login(email);
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() dto: LoginDto): Promise<LoginResponse> {
+    return this.authService.login(dto);
   }
 }

@@ -5,14 +5,15 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { buildJwtOptions } from './auth.config';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'dev-secret-key',
-      signOptions: { expiresIn: '7d' },
+    // registerAsync: factory chạy sau khi dotenv đã nạp .env, secret luôn sẵn sàng.
+    JwtModule.registerAsync({
+      useFactory: () => buildJwtOptions(),
     }),
   ],
   controllers: [AuthController],

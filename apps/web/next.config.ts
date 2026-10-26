@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // @oneops/shared-types được consume trực tiếp từ source TS (không build riêng).
+  transpilePackages: ["@oneops/shared-types"],
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,

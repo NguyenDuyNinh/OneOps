@@ -1,24 +1,56 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { JwtPayload, UserRole } from '@oneops/shared-types';
+import { LoginDto } from './dto/login.dto';
+import { AuthenticatedUser, JwtPayload, LoginResponse, UserRole } from '@oneops/shared-types';
+
+/** Thông báo chung cho mọi trường hợp sai thông tin — tránh dò email tồn tại. */
+const INVALID_CREDENTIALS_MESSAGE = 'Email hoặc mật khẩu không chính xác.';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
 
-  async login(email: string) {
-    const user = await this.usersService.findByEmail(email);
+  async login(dto: LoginDto): Promise<LoginResponse> {
+    const user = await this.usersService.findAuthUserByEmail(dto.email);
+
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      this.logger.warn(`Đăng nhập thất bại: không tìm thấy tài khoản cho email đã nhập`);
+      throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
-    const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role as UserRole };
-    return {
-      accessToken: this.jwtService.sign(payload),
-      user: { id: user.id, name: user.name, role: user.role },
+
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isPasswordValid) {
+      this.logger.warn(`Đăng nhập thất bại: sai mật khẩu (userId=${user.id})`);
+      throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+    }
+
+    if (!user.isActive) {
+      this.logger.warn(`Đăng nhập bị chặn: tài khoản đã vô hiệu hoá (userId=${user.id})`);
+      throw new ForbiddenException('Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ quản trị viên.');
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role as UserRole,
     };
+    const accessToken = await this.jwtService.signAsync(payload);
+    const authenticatedUser: AuthenticatedUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as UserRole,
+      ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
+    };
+
+    this.logger.log(`Người dùng ${user.id} đăng nhập thành công`);
+    return { accessToken, user: authenticatedUser };
   }
 }
