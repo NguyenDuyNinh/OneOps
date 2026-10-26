@@ -1,350 +1,324 @@
-# CLEANCODE.md — Quy Tắc Viết Code Sạch (OneOps)
+# CLEANCODE.md — Cẩm Nang Quy Tắc Viết Code Chi Tiết (OneOps)
 
-> Áp dụng cho toàn bộ team. Đây là tiêu chuẩn để reviewer reject PR nếu vi phạm.
-
----
-
-## 1. Đặt tên (Naming)
-
-### Quy tắc chung: Tên phải nói lên ý nghĩa, không cần comment giải thích
-
-```typescript
-// ❌ SAI
-const d = new Date();
-const u = await getUserById(id);
-function check(x: string): boolean {}
-const flag = true;
-const list = [];
-
-// ✅ ĐÚNG
-const today = new Date();
-const employee = await getUserById(id);
-function isValidOfficeNetwork(ipAddress: string): boolean {}
-const isLateCheckIn = true;
-const overdueTaskList = [];
-```
-
-### Naming theo loại
-
-| Loại | Convention | Ví dụ |
-|---|---|---|
-| Variable | `camelCase` | `checkedInAt`, `taskList` |
-| Function/Method | `camelCase`, bắt đầu bằng động từ | `checkIn()`, `validateIp()`, `getHeadcount()` |
-| Boolean variable | Tiền tố `is`, `has`, `can`, `should` | `isLate`, `hasCheckedIn`, `canApprove` |
-| Constant | `SCREAMING_SNAKE_CASE` | `MAX_LATE_MINUTES`, `OFFICE_CHECK_IN_HOUR` |
-| Class/Interface | `PascalCase` | `AttendanceService`, `TaskRecord` |
-| Enum | `PascalCase` (tên), `SCREAMING_SNAKE_CASE` (giá trị) | `WorkStatus.AT_OFFICE` |
-| File BE | `kebab-case` | `attendance.service.ts` |
-| File FE Component | `PascalCase` | `CheckInButton.tsx` |
-| File FE Hook | `camelCase` | `useAttendance.ts` |
-| CSS Class | `kebab-case` | `.check-in-button` |
-| CSS Module Class | `camelCase` | `styles.checkInButton` |
+> **MỤC TIÊU**: Tài liệu này đóng vai trò là "Kinh Thánh Kỹ Thuật" của toàn đội ngũ OneOps.
+> Bất kỳ đoạn code nào vi phạm các nguyên tắc trong tài liệu này sẽ bị **REJECT PULL REQUEST** trong quá trình Code Review.
 
 ---
 
-## 2. Hàm (Functions)
+## MỤC LỤC
+1. [Triết Lý Clean Code Tại OneOps](#1-triết-lý-clean-code-tại-oneops)
+2. [Quy Tắc Đặt Tên Toàn Diện (Naming Conventions)](#2-quy-tắc-đặt-tên-toàn-diện-naming-conventions)
+3. [Thiết Kế Hàm & Phương Thức (Functions & Methods)](#3-thiết-kế-hàm--phương-thức-functions--methods)
+4. [Kiểm Soát Luồng & Điều Kiện (Control Flow & Logic)](#4-kiểm-soát-luồng--điều-kiện-control-flow--logic)
+5. [Async, Concurrency & Xử Lý Lỗi (Error Handling)](#5-async-concurrency--xử-lý-lỗi-error-handling)
+6. [Chuẩn Mực Backend NestJS](#6-chuẩn-mực-backend-nestjs)
+7. [Chuẩn Mực Frontend Next.js & React](#7-chuẩn-mực-frontend-nextjs--react)
+8. [Quản Trị TypeScript & An Toàn Kiểu Dữ Liệu](#8-quản-trị-typescript--an-toàn-kiểu-dữ-liệu)
+9. [Ghi Log & Quan Sát Hệ Thống (Logging & Observability)](#9-ghi-log--quan-sát-hệ-thống-logging--observability)
+10. [Bộ Sưu Tập Anti-Patterns & Cách Refactor](#10-bộ-sưu-tập-anti-patterns--cách-refactor)
+11. [Checklist Đánh Giá Pull Request (PR Review Checklist)](#11-checklist-đánh-giá-pull-request-pr-review-checklist)
 
-### Nguyên tắc Single Responsibility — Mỗi hàm làm đúng 1 việc
+---
+
+## 1. Triết Lý Clean Code Tại OneOps
+
+Tại OneOps, code sạch được định nghĩa qua 4 tiêu chuẩn bất biến:
+* **Readable (Dễ đọc)**: Code viết cho người đọc trước, máy hiểu sau. Một developer mới tham gia dự án phải hiểu chức năng của hàm trong vòng 30 giây mà không cần người khác giải thích.
+* **Predictable (Dễ đoán)**: Hàm nhận input A thì trả về output B, không có side-effect ngầm, không biến đổi dữ liệu tham chiếu (immutable).
+* **Testable (Dễ kiểm thử)**: Code được chia nhỏ, phụ thuộc được trừu tượng hóa (Dependency Injection), dễ dàng viết unit test mà không phải mock cả hệ thống.
+* **Maintainable (Dễ bảo trì)**: Thay đổi một logic nghiệp vụ tại module này tuyệt đối không làm gãy module khác.
+
+---
+
+## 2. Quy Tắc Đặt Tên Toàn Diện (Naming Conventions)
+
+### 2.1 Bảng Quy Ước Chuẩn
+
+| Đối tượng | Quy ước | Ví dụ Hợp lệ | Ví dụ Sai / Cấm |
+|---|---|---|---|
+| **Biến (Variable)** | `camelCase` | `checkedInAt`, `activeTaskList` | `checked_in_at`, `List1` |
+| **Hằng số (Constant)** | `SCREAMING_SNAKE_CASE` | `MAX_ALLOWED_LATE_MINUTES`, `DEFAULT_PAGE_SIZE` | `maxLateMinutes`, `DefaultPage` |
+| **Hàm / Phương thức** | `camelCase` (Bắt đầu bằng động từ) | `validateOfficeIp()`, `calculateOverdueDays()` | `officeIp()`, `data()`, `process()` |
+| **Biến Boolean** | Bắt đầu bằng: `is`, `has`, `can`, `should` | `isOverdue`, `hasSubmittedProposal`, `canEditTask` | `overdue`, `proposalStatus`, `flag` |
+| **Class / Interface / Type** | `PascalCase` | `AttendanceRecord`, `TaskStateMachine` | `attendance_record`, `iTask` |
+| **Enum Type** | `PascalCase` | `WorkStatus`, `TaskDeadlineStatus` | `work_status`, `TASK_STATUS` |
+| **Enum Value** | `SCREAMING_SNAKE_CASE` | `WorkStatus.AT_OFFICE`, `TaskStatus.IN_PROGRESS` | `WorkStatus.AtOffice` |
+| **DTO Class** | `PascalCase` + hậu tố `Dto` | `CreateTaskDto`, `UpdateAttendanceStatusDto` | `TaskPayload`, `CreateTaskInput` |
+| **File Backend** | `kebab-case.suffix.ts` | `attendance.service.ts`, `task-state.machine.ts` | `attendanceService.ts`, `TaskLogic.ts` |
+| **File Component (FE)** | `PascalCase.tsx` | `KanbanBoard.tsx`, `NotificationBell.tsx` | `kanbanBoard.tsx`, `index.tsx` |
+| **File Hook (FE)** | `camelCase.ts` (Bắt đầu bằng `use`) | `useAttendance.ts`, `useSocketSubscription.ts` | `attendanceHook.ts` |
+| **DB Table / Column** | `snake_case` (trong DB) | `table: task_logs`, `col: checked_in_at` | `TaskLogs`, `checkedInAt` |
+
+### 2.2 Quy Tắc Đặt Tên Có Ý Nghĩa
+* **Cấm viết tắt vô nghĩa**: Không dùng `ctx`, `req1`, `u`, `d`, `tmp`. Ngoại lệ: `i`, `j` trong vòng lặp index ngắn.
+* **Tránh từ ngữ tối nghĩa**: Không đặt tên hàm là `handleData()`, `process()`, `doSomething()`. Phải đổi thành: `syncHeadcountStatus()`, `assertAssigneeNotOnLeave()`.
+
+---
+
+## 3. Thiết Kế Hàm & Phương Thức (Functions & Methods)
+
+### 3.1 Quy Tắc Đơn Nhiệm (Single Responsibility Principle - SRP)
+Một hàm chỉ nên giải quyết **đúng một việc** ở cùng một tầng trừu tượng.
 
 ```typescript
-// ❌ SAI — Hàm làm quá nhiều việc
-async function handleCheckIn(userId: string, dto: CheckInDto, ip: string) {
-  // Validate IP
-  const allowedIps = process.env.OFFICE_ALLOWED_IPS.split(',');
-  const isValidIp = allowedIps.some(range => ipInRange(ip, range));
-  if (!isValidIp) throw new ForbiddenException();
-
-  // Check đã check-in chưa
-  const today = startOfDay(new Date());
-  const existing = await prisma.attendance.findFirst({ ... });
-  if (existing) throw new BadRequestException();
-
-  // Tính toán trạng thái
-  const now = new Date();
-  const lateThreshold = set(today, { hours: 7, minutes: 55 });
-  const isLate = now > lateThreshold;
-
-  // Tạo record
-  const record = await prisma.attendance.create({ ... });
-
-  // Gửi thông báo
-  await notificationService.send({ ... });
-
-  // Emit event
-  eventEmitter.emit('attendance.checked_in', record);
-  return record;
+// ❌ SAI: Hàm vừa validate, vừa ghi DB, vừa gửi socket, vừa gửi mail
+async function handleTaskDone(taskId: string, userId: string) {
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task) throw new Error();
+  if (task.assigneeId !== userId) throw new Error();
+  await prisma.task.update({ where: { id: taskId }, data: { status: 'DONE' } });
+  socket.emit('task:done', task);
+  await mailer.send({ to: 'manager@oneops.vn', subject: 'Task done' });
 }
 
-// ✅ ĐÚNG — Tách thành các hàm nhỏ, mỗi hàm 1 nhiệm vụ
-async function checkIn(userId: string, dto: CheckInDto, clientIp: string) {
-  this.validateOfficeNetwork(dto.type, clientIp);
-  await this.assertNotAlreadyCheckedIn(userId);
+// ✅ ĐÚNG: Tách thành các hàm độc lập, phối hợp luồng sạch sẽ
+async function completeTask(taskId: string, userId: string): Promise<Task> {
+  const task = await this.findTaskAndValidateOwnership(taskId, userId);
+  this.stateMachine.assertCanTransition(task.status, TaskStatus.DONE);
 
-  const checkInStatus = this.determineCheckInStatus(dto.type);
-  const record = await this.createAttendanceRecord(userId, dto, checkInStatus);
-
-  this.eventEmitter.emit('attendance.checked_in', { userId, record });
-  return record;
+  const updatedTask = await this.persistTaskCompletion(taskId);
+  this.eventEmitter.emit('task.status_changed', { taskId, from: task.status, to: TaskStatus.DONE });
+  
+  return updatedTask;
 }
-
-private validateOfficeNetwork(type: WorkStatus, ip: string): void { ... }
-private async assertNotAlreadyCheckedIn(userId: string): Promise<void> { ... }
-private determineCheckInStatus(type: WorkStatus): CheckInStatus { ... }
-private async createAttendanceRecord(...): Promise<Attendance> { ... }
 ```
 
-### Độ dài hàm: Tối đa 30 dòng
+### 3.2 Giới Hạn Kích Thước & Tham Số
+* **Độ dài hàm**: Không vượt quá **30 dòng**. Nếu hàm dài hơn, bạn đang làm nhiều hơn 1 việc $\rightarrow$ Hãy tách hàm con (private helper).
+* **Số lượng tham số**: Tối đa **3 tham số**. Nếu cần truyền nhiều hơn 3 giá trị, bắt buộc gom thành Object/DTO.
+  ```typescript
+  // ❌ SAI
+  function registerShift(userId: string, date: Date, shiftId: string, ip: string, note?: string) {}
 
-Nếu hàm vượt 30 dòng, xem xét tách ra hàm nhỏ hơn.
-
-### Số lượng tham số: Tối đa 3
-
-```typescript
-// ❌ SAI — Quá nhiều params
-function createTask(title: string, desc: string, assigneeId: string,
-  deadline: Date, priority: string, projectId: string) {}
-
-// ✅ ĐÚNG — Dùng DTO/object
-function createTask(dto: CreateTaskDto) {}
-```
+  // ✅ ĐÚNG
+  function registerShift(dto: RegisterShiftDto) {}
+  ```
 
 ---
 
-## 3. Điều kiện & Vòng lặp (Conditions & Loops)
+## 4. Kiểm Soát Luồng & Điều Kiện (Control Flow & Logic)
 
-### Early return — Thoát sớm khi có thể
+### 4.1 Áp Dụng Guard Clauses (Return Early)
+Luôn kiểm tra các điều kiện tiên quyết (pre-conditions) hoặc lỗi và `return` / `throw` ngay ở đầu hàm. Tránh lồng `if/else` sâu dạng bậc thang (Pyramid of Doom).
 
 ```typescript
-// ❌ SAI — Nested if sâu
-async function approveLeave(managerId: string, leaveId: string) {
-  const leave = await this.prisma.leave.findUnique({ where: { id: leaveId } });
-  if (leave) {
-    if (leave.status === 'PENDING') {
-      if (leave.userId !== managerId) {
-        // ... logic chính ở đây, sâu 3 cấp
+// ❌ SAI: Lồng 3 cấp if
+async function requestLeave(userId: string, dto: LeaveDto) {
+  if (dto.days > 0) {
+    const user = await this.getUser(userId);
+    if (user.isActive) {
+      if (user.remainingLeaveDays >= dto.days) {
+        return this.createLeave(userId, dto);
+      } else {
+        throw new BadRequestException('Hết ngày nghỉ');
       }
     }
   }
 }
 
-// ✅ ĐÚNG — Early return
-async function approveLeave(managerId: string, leaveId: string) {
-  const leave = await this.prisma.leave.findUnique({ where: { id: leaveId } });
-  if (!leave) throw new NotFoundException('Leave request not found');
-  if (leave.status !== 'PENDING') throw new BadRequestException('Already processed');
-  if (leave.userId === managerId) throw new ForbiddenException('Cannot approve own leave');
+// ✅ ĐÚNG: Thoát sớm, code phẳng hoàn toàn
+async function requestLeave(userId: string, dto: LeaveDto) {
+  if (dto.days <= 0) {
+    throw new BadRequestException('Số ngày nghỉ không hợp lệ');
+  }
 
-  // Logic chính ở đây, không bị nest
-  return this.processLeaveApproval(leave);
+  const user = await this.getUser(userId);
+  if (!user.isActive) {
+    throw new ForbiddenException('Tài khoản đã bị vô hiệu hóa');
+  }
+  if (user.remainingLeaveDays < dto.days) {
+    throw new BadRequestException('Số ngày phép còn lại không đủ');
+  }
+
+  return this.createLeave(userId, dto);
 }
 ```
 
-### Điều kiện phức tạp — Đặt tên có ý nghĩa
+### 4.2 Triệt Tiêu Magic Numbers & Magic Strings
+Tất cả các số và chuỗi có ý nghĩa nghiệp vụ phải được đặt tên qua `const` hoặc `enum`.
 
 ```typescript
 // ❌ SAI
-if (task.deadline < new Date() && task.status !== 'DONE' && task.status !== 'CANCELLED') {}
+if (diffHours < 24) { color = '#f59e0b'; }
+if (now.getHours() === 7 && now.getMinutes() > 55) { status = 'LATE'; }
 
 // ✅ ĐÚNG
-const isOverdue = task.deadline < new Date();
-const isActiveTask = !['DONE', 'CANCELLED'].includes(task.status);
-if (isOverdue && isActiveTask) {}
+import { DEADLINE_CONFIG, WORK_SCHEDULE } from './attendance.constants';
+
+const isApproachingDeadline = remainingHours <= DEADLINE_CONFIG.WARNING_THRESHOLD_HOURS;
+const isPastCheckInGracePeriod = now.getHours() > WORK_SCHEDULE.START_HOUR ||
+  (now.getHours() === WORK_SCHEDULE.START_HOUR && now.getMinutes() > WORK_SCHEDULE.GRACE_PERIOD_MINUTES);
 ```
 
 ---
 
-## 4. Async/Await & Error Handling
+## 5. Async, Concurrency & Xử Lý Lỗi (Error Handling)
 
-### Luôn handle error — KHÔNG nuốt exception
+### 5.1 Quy Tắc Với `async/await`
+* **Tuyệt đối không dùng `await` tuần tự trong vòng lặp**: Sử dụng `Promise.all()` (nếu fail 1 cái là dừng hết) hoặc `Promise.allSettled()` (nếu muốn thực thi độc lập).
+  ```typescript
+  // ❌ SAI: Gây nghẽn IO nghiêm trọng
+  for (const employeeId of employeeIds) {
+    await this.notifyEmployee(employeeId);
+  }
 
-```typescript
-// ❌ SAI — Nuốt lỗi
-try {
-  await this.sendEmail(userId);
-} catch (e) {}
+  // ✅ ĐÚNG: Chạy song song
+  await Promise.allSettled(employeeIds.map((id) => this.notifyEmployee(id)));
+  ```
 
-// ❌ SAI — Log rồi tiếp tục như không có gì
-try {
-  await this.sendEmail(userId);
-} catch (e) {
-  console.log(e); // dùng Logger, và phải quyết định có rethrow không
-}
+### 5.2 Xử Lý Lỗi Văn Minh
+* **Không bao giờ "nuốt" lỗi ngầm**:
+  ```typescript
+  // ❌ TỘI ĐỒ LỚN NHẤT CỦA DEVELOPER:
+  try {
+    await this.syncDatabase();
+  } catch (e) {}
 
-// ✅ ĐÚNG — Log có context, quyết định rõ ràng
-try {
-  await this.sendEmail(userId);
-} catch (error) {
-  // Email không gửi được không nên chặn luồng check-in
-  this.logger.warn('Failed to send check-in email', { userId, error: error.message });
-  // KHÔNG rethrow → tính năng phụ không được ảnh hưởng tính năng chính
-}
-```
-
-### Không await trong vòng lặp khi có thể chạy song song
-
-```typescript
-// ❌ SAI — Sequential (chậm)
-for (const userId of userIds) {
-  await this.sendReminderEmail(userId); // Gửi lần lượt từng người
-}
-
-// ✅ ĐÚNG — Parallel
-await Promise.allSettled(userIds.map(userId => this.sendReminderEmail(userId)));
-```
+  // ✅ ĐÚNG: Phân loại lỗi và xử lý có trách nhiệm
+  try {
+    await this.syncDatabase();
+  } catch (error) {
+    this.logger.error(`Database sync failed for tenant ${tenantId}`, (error as Error).stack);
+    throw new InternalServerErrorException('Lỗi đồng bộ dữ liệu, vui lòng thử lại sau.');
+  }
+  ```
+* **Sử dụng đúng HTTP Status Exception của NestJS**:
+  * 400: `BadRequestException` (Sai format, vi phạm ràng buộc nghiệp vụ).
+  * 401: `UnauthorizedException` (Chưa đăng nhập, token hết hạn).
+  * 403: `ForbiddenException` (Không đủ quyền, bị chặn dải IP văn phòng).
+  * 404: `NotFoundException` (Không tìm thấy bản ghi).
+  * 409: `ConflictException` (Trùng lặp dữ liệu, duplicate check-in).
 
 ---
 
-## 5. Comment & Documentation
+## 6. Chuẩn Mực Backend NestJS
 
-### Comment giải thích "Tại sao", không phải "Làm gì"
+### 6.1 Kiến Trúc Tách Lớp (Layer Separation)
+* **Controller**: Chỉ làm nhiệm vụ ánh xạ HTTP Request $\rightarrow$ Validate DTO $\rightarrow$ Gọi Service $\rightarrow$ Trả kết quả. **Không được chứa bất kỳ logic `if/else` nghiệp vụ nào.**
+* **Service**: Chứa 100% logic nghiệp vụ. Không truy cập vào object `Request` hay `Response` của Express.
+* **Prisma**: Sử dụng qua `PrismaService`. Không viết SQL thô nếu Prisma hỗ trợ.
 
-```typescript
-// ❌ SAI — Comment thừa (code đã nói lên điều này)
-// Tăng count lên 1
-count++;
-
-// ❌ SAI — Comment mô tả what, không why
-// Kiểm tra IP có trong danh sách cho phép không
-const isAllowed = allowedRanges.some(range => ipInRange(clientIp, range));
-
-// ✅ ĐÚNG — Comment giải thích lý do nghiệp vụ không rõ ràng từ code
-// BR-ATT-02: Chỉ từ chối khi type là AT_OFFICE; Remote/OnDuty không cần xác thực IP.
-// Nhân viên chọn Remote sau khi đã vào văn phòng vẫn được chấp nhận.
-if (dto.type === WorkStatus.AT_OFFICE && !isValidIp) {
-  throw new ForbiddenException('Not connected to office network');
-}
-```
-
-### JSDoc cho public API của service
-
-```typescript
-/**
- * Thực hiện check-in cho nhân viên.
- *
- * @param userId - ID của nhân viên
- * @param dto - Thông tin check-in (loại làm việc, ghi chú)
- * @param clientIp - IP của client (dùng để xác thực mạng văn phòng)
- * @throws {BadRequestException} Nếu đã check-in trong ngày
- * @throws {ForbiddenException} Nếu chọn AT_OFFICE nhưng không trong mạng văn phòng
- */
-async checkIn(userId: string, dto: CheckInDto, clientIp: string): Promise<AttendanceRecord> {}
-```
+### 6.2 Truy Vấn Dữ Liệu Tối Ưu (Prisma Queries)
+* **Luôn dùng `select`**: Không bao giờ lấy nguyên cả cục dữ liệu bảng User vì sẽ vô tình trả về trường `passwordHash`.
+  ```typescript
+  // ✅ ĐÚNG
+  const user = await this.prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, role: true, avatarUrl: true },
+  });
+  ```
+* **Bảo vệ Tính Toàn Vẹn bằng `$transaction`**:
+  Khi một thao tác cần ghi vào từ 2 bảng trở lên (ví dụ: Tạo Task và Ghi Log lịch sử), **bắt buộc** bọc trong Transaction.
 
 ---
 
-## 6. Constants & Magic Numbers
+## 7. Chuẩn Mực Frontend Next.js & React
+
+### 7.1 Server Components vs Client Components
+* Mặc định mọi file trong thư mục `app/` là **Server Component**.
+* Chỉ thêm directive `'use client'` khi Component đó cần:
+  * Quản lý State: `useState`, `useReducer`.
+  * Hiệu ứng / Vòng đời: `useEffect`, `useLayoutEffect`.
+  * Tương tác người dùng: `onClick`, `onChange`, `onSubmit`.
+  * Sử dụng Browser API hoặc WebSocket client.
+
+### 7.2 Đóng Gói API & Logic Trong Custom Hooks
+Component giao diện không được chứa logic gọi API hay tính toán phức tạp.
 
 ```typescript
-// ❌ SAI — Magic numbers/strings
-if (now.getHours() >= 7 && now.getMinutes() >= 55) { ... }
-if (task.daysUntilDeadline <= 1) { ... }
-
-// ✅ ĐÚNG — Named constants
-const ATTENDANCE = {
-  LATE_THRESHOLD_HOUR: 7,
-  LATE_THRESHOLD_MINUTE: 55,
-  EARLY_CHECKOUT_HOUR: 17,
-  EARLY_CHECKOUT_MINUTE: 30,
-  AUTO_CLOSE_HOUR: 23,
-  AUTO_CLOSE_MINUTE: 59,
-} as const;
-
-const TASK = {
-  WARNING_HOURS_BEFORE_DEADLINE: 24,
-  DEADLINE_CHECK_INTERVAL_MINUTES: 30,
-} as const;
-
-if (now.getHours() >= ATTENDANCE.LATE_THRESHOLD_HOUR) { ... }
-if (task.hoursUntilDeadline <= TASK.WARNING_HOURS_BEFORE_DEADLINE) { ... }
-```
-
----
-
-## 7. Logging
-
-```typescript
-// ✅ ĐÚNG — Dùng NestJS Logger với context đầy đủ
-private readonly logger = new Logger(AttendanceService.name);
-
-this.logger.log(`User ${userId} checked in as ${dto.type}`, { userId, type: dto.type });
-this.logger.warn(`Late check-in for user ${userId}`, { userId, minutesLate: 5 });
-this.logger.error('Failed to create attendance record', error.stack, { userId });
-
-// ❌ SAI — console.log trong service/controller
-console.log('checked in', userId);
-console.error(error);
-```
-
----
-
-## 8. React Component Guidelines (Frontend)
-
-### Component thuần túy — Không side effects trong render
-
-```typescript
-// ❌ SAI
-export function TaskCard({ taskId }: { taskId: string }) {
-  const [task, setTask] = useState(null);
-  // Fetch trong component là anti-pattern với Next.js 14
+// ❌ SAI: Viết API và state lung tung trong Component
+export function AttendanceWidget() {
+  const [data, setData] = useState();
   useEffect(() => {
-    fetch(`/tasks/${taskId}`).then(r => r.json()).then(setTask);
-  }, [taskId]);
+    axios.get('/attendance/today').then(res => setData(res.data));
+  }, []);
+  return <div>{/* JSX */}</div>;
 }
 
-// ✅ ĐÚNG — Dùng custom hook, để component chỉ lo render
-export function TaskCard({ task }: { task: Task }) {
-  const { isExpanded, toggle } = useTaskCardExpansion(task.id);
-  return (
-    <div className={styles.card}>
-      <TaskCardHeader task={task} onToggle={toggle} />
-      {isExpanded && <TaskCardBody task={task} />}
-    </div>
-  );
+// ✅ ĐÚNG: Tách thành Hook chuyên trách
+export function AttendanceWidget() {
+  const { todayRecord, isLoading, checkIn } = useAttendance();
+  if (isLoading) return <Spinner />;
+  return <AttendanceDisplay record={todayRecord} onCheckIn={checkIn} />;
 }
 ```
 
-### Props — Đặt tên rõ ràng, có type đầy đủ
-
-```typescript
-// ❌ SAI
-function Button({ onClick, text, type, disabled, color }) {}
-
-// ✅ ĐÚNG
-interface ButtonProps {
-  label: string;
-  onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
-  isLoading?: boolean;
-  isDisabled?: boolean;
-}
-function Button({ label, onClick, variant = 'primary', isLoading, isDisabled }: ButtonProps) {}
-```
+### 7.3 Giới Hạn Độ Dài Component
+Một React Component không được vượt quá **150 dòng code**. Nếu vượt quá, lập tức tách thành các Component con nhỏ hơn (`TaskHeader.tsx`, `TaskTimeline.tsx`, `TaskCommentList.tsx`).
 
 ---
 
-## 9. File Size Limits
+## 8. Quản Trị TypeScript & An Toàn Kiểu Dữ Liệu
 
-| Loại file | Tối đa |
-|---|---|
-| Service (BE) | 200 dòng |
-| Controller (BE) | 100 dòng |
-| React Component | 150 dòng |
-| Custom Hook | 80 dòng |
-| Utility function file | 100 dòng |
+### 8.1 Không Khoan Nhượng Với `any`
+* `any` làm tê liệt trình kiểm tra kiểu và là nguyên nhân hàng đầu gây crash ứng dụng trong runtime.
+* Nếu không biết chắc chắn kiểu dữ liệu từ bên ngoài (API bên thứ 3), dùng `unknown` và tạo Type Guard function:
+  ```typescript
+  function isTaskPayload(data: unknown): data is TaskPayload {
+    return typeof data === 'object' && data !== null && 'taskId' in data;
+  }
+  ```
 
-Nếu vượt giới hạn → **tách file** hoặc **tách class/function**.
+### 8.2 Single Source of Truth
+* Tất cả kiểu dữ liệu dùng chung giữa API và Web Client **bắt buộc** nằm trong `packages/shared-types`.
+* Frontend chỉ việc `import { Task, WorkStatus } from '@oneops/shared-types'`, tuyệt đối không tự gõ lại `interface Task { ... }` ở thư mục web.
 
 ---
 
-## 10. Checklist trước khi tạo PR
+## 9. Ghi Log & Quan Sát Hệ Thống (Logging & Observability)
 
-- [ ] Không có `console.log` trong code
-- [ ] Không có `any` type (ngoại lệ phải có comment)
-- [ ] Không có `// TODO` hay `// FIXME`
-- [ ] Không có commented-out code
-- [ ] Tất cả constants được đặt tên, không có magic numbers
-- [ ] Hàm/biến đặt tên rõ ràng, nói lên ý nghĩa
-- [ ] Các trường hợp lỗi đều được handle
-- [ ] Có JSDoc cho các public method của service
-- [ ] File không vượt quá giới hạn dòng
-- [ ] Lint và typecheck pass (`pnpm lint && pnpm typecheck`)
+* **Nghiêm cấm `console.log` trong toàn bộ mã nguồn**:
+  * Trên NestJS: Khởi tạo logger theo class name:
+    ```typescript
+    private readonly logger = new Logger(TasksService.name);
+    ```
+  * Ghi log có ngữ cảnh rõ ràng:
+    ```typescript
+    this.logger.log(`Task ${taskId} status transitioned from ${from} to ${to} by user ${userId}`);
+    this.logger.warn(`Potential duplicate check-in attempt for user ${userId}`);
+    ```
+
+---
+
+## 10. Bộ Sưu Tập Anti-Patterns & Cách Refactor
+
+### Anti-Pattern 1: Xuyên Thủng Ranh Giới Module (Cross-Module Bleeding)
+* **Tình huống**: Khi Dev 2 (Tasks) muốn thông báo cho Dev 3 (Notifications).
+* **Code Xấu**:
+  ```typescript
+  // CẤM: Direct Dependency Injection giữa 2 module khác nhau
+  @Injectable()
+  export class TasksService {
+    constructor(private readonly notificationService: NotificationsService) {}
+  }
+  ```
+* **Refactor Đúng Chuẩn**:
+  ```typescript
+  // ĐÚNG: Giao tiếp qua Event-Driven Architecture (Khớp nối lỏng)
+  @Injectable()
+  export class TasksService {
+    constructor(private readonly eventEmitter: EventEmitter2) {}
+    
+    async assignTask(task: Task) {
+      // ... logic
+      this.eventEmitter.emit('task.assigned', { taskId: task.id, assigneeId: task.assigneeId });
+    }
+  }
+  ```
+
+---
+
+## 11. Checklist Đánh Giá Pull Request (PR Review Checklist)
+
+Trước khi submit PR hoặc phê duyệt PR của đồng nghiệp, hãy kiểm tra lần lượt:
+
+- [ ] **Ranh giới module**: PR có vô tình chỉnh sửa file ngoài phạm vi sở hữu của mình không?
+- [ ] **Kiểm tra Type**: Dự án chạy `pnpm typecheck` có 0 lỗi không? Có sử dụng `any` không?
+- [ ] **Kiểm tra Lint**: Chạy `pnpm lint` có sạch sẽ không?
+- [ ] **Độ dài hàm & file**: Không có hàm nào $> 30$ dòng, không có file service nào $> 200$ dòng.
+- [ ] **Guard Clauses**: Đã thay thế các khối `if/else` lồng nhau bằng return early chưa?
+- [ ] **Bảo vệ dữ liệu**: Các câu truy vấn Prisma có dùng `select` để loại trừ password không?
+- [ ] **Transaction**: Các thao tác ghi nhiều bảng có được bọc trong `$transaction` không?
+- [ ] **Thông báo lỗi**: Các lỗi ném ra có đúng HTTP status code và câu thông báo rõ ràng không?
+- [ ] **Không còn dấu vết dev**: Đã xóa toàn bộ `console.log`, `// TODO`, code thừa bị comment chưa?
+- [ ] **Conventional Commit**: Tên PR và Commit message có đúng chuẩn `<type>(<scope>): <desc>` chưa?
