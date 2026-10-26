@@ -1,6 +1,14 @@
 {
   "name": "@oneops/database",
   "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
   "scripts": {
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
@@ -10,10 +18,11 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.13.0"
+    "@prisma/client": "^5.21.1",
+    "dotenv": "^18.0.9"
   },
   "devDependencies": {
-    "prisma": "^5.13.0",
+    "prisma": "^5.21.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.0"
   }

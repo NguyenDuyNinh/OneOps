@@ -46,9 +46,9 @@ export class TasksService {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Task không tồn tại');
 
-    TaskStateMachine.validateTransition(task.status, newStatus, role);
+    TaskStateMachine.validateTransition(task.status as TaskStatus, newStatus, role);
 
-    const updatedTask = await this.prisma.$transaction(async (tx) => {
+    const updatedTask = await this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.task.update({
         where: { id: taskId },
         data: { status: newStatus },

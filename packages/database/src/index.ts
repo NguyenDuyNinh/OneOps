@@ -1,6 +1,8 @@
-import { PrismaClient } from '../generated/client';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-// Singleton pattern — tránh tạo nhiều connection trong dev (hot reload)
+import { PrismaClient } from '../generated/client/index.js';
+
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 export const prisma =
@@ -15,4 +17,4 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-export * from '../generated/client';
+export * from '../generated/client/index.js';

@@ -10,7 +10,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "incremental": true,
+    "paths": {
+      "@oneops/database": ["../../packages/database/src/index.ts"],
+      "@oneops/shared-types": ["../../packages/shared-types/src/index.ts"]
+    },
     "skipLibCheck": true,
     "strictNullChecks": true,
     "noImplicitAny": true,

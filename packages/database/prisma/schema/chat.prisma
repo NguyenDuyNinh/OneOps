@@ -1,0 +1,51 @@
+// ============================================================
+// [Dev 3] — Module Chat Nội Bộ
+// Chủ sở hữu: Dev 3
+// ============================================================
+
+model ChatRoom {
+  id        String       @id @default(cuid())
+  name      String?
+  type      ChatRoomType
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  members  ChatMember[]
+  messages Message[]
+
+  @@map("chat_rooms")
+}
+
+model ChatMember {
+  id       String   @id @default(cuid())
+  roomId   String   @map("room_id")
+  userId   String   @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  room ChatRoom @relation(fields: [roomId], references: [id])
+  user User     @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+  @@map("chat_members")
+  @@index([userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String   @map("room_id")
+  senderId  String   @map("sender_id")
+  content   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room   ChatRoom @relation(fields: [roomId], references: [id])
+  sender User     @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+  @@index([roomId])
+  @@index([senderId])
+}
+
+enum ChatRoomType {
+  DIRECT
+  GROUP
+}

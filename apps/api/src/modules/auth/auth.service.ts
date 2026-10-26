@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { JwtPayload } from '@oneops/shared-types';
+import { JwtPayload, UserRole } from '@oneops/shared-types';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +15,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
+    const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role as UserRole };
     return {
       accessToken: this.jwtService.sign(payload),
       user: { id: user.id, name: user.name, role: user.role },

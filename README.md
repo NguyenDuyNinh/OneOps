@@ -113,7 +113,7 @@ oneops/
 │
 ├── packages/
 │   ├── database/                           # ORM & DATABASE SCHEMA
-│   │   ├── prisma/schema.prisma            # Khai báo Models, Enums, Relations PostgreSQL
+│   │   ├── prisma/schema/            # Khai báo Models, Enums, Relations PostgreSQL
 │   │   └── src/index.ts                    # Export PrismaClient dùng chung
 │   ├── shared-types/                       # TYPESCRIPT TYPES (HỢP ĐỒNG DỮ LIỆU)
 │   │   └── src/
@@ -181,7 +181,7 @@ export interface CreateTaskDto {
 ```
 
 ### Bước 2: Bổ sung Database Model (Nếu có)
-Nếu tính năng cần bảng mới, tạo PR sửa `packages/database/prisma/schema.prisma` và chạy:
+Nếu tính năng cần bảng mới, tạo PR sửa `packages/database/prisma/schema/<module>.prisma` và chạy:
 ```bash
 pnpm db:generate
 ```

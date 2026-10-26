@@ -9,10 +9,10 @@
 
 | Phạm vi | Chủ sở hữu | Quy tắc bắt buộc |
 |---|---|---|
-| `apps/api/src/modules/attendance/`<br>`apps/web/src/features/attendance/`<br>`packages/shared-types/src/attendance.types.ts` | **Dev 1** | Chỉ Dev 1 được sửa/tạo mới trong phạm vi này. |
-| `apps/api/src/modules/tasks/`<br>`apps/web/src/features/tasks/`<br>`packages/shared-types/src/task.types.ts` | **Dev 2** | Chỉ Dev 2 được sửa/tạo mới trong phạm vi này. |
-| `apps/api/src/modules/chat/`<br>`apps/api/src/modules/notifications/`<br>`apps/web/src/features/chat/`<br>`apps/web/src/features/notifications/`<br>`packages/shared-types/src/chat.types.ts`<br>`packages/shared-types/src/notification.types.ts` | **Dev 3** | Chỉ Dev 3 được sửa/tạo mới trong phạm vi này. |
-| `packages/database/prisma/schema.prisma`<br>`apps/api/src/core/`<br>`apps/web/src/shared/`<br>`packages/shared-types/src/user.types.ts` | **SHARED** | Cần sự đồng ý của cả 3 dev trước khi sửa. |
+| `apps/api/src/modules/attendance/`<br>`apps/web/src/features/attendance/`<br>`packages/shared-types/src/attendance.types.ts`<br>`packages/database/prisma/schema/attendance.prisma` | **Dev 1** | Chỉ Dev 1 được sửa/tạo mới trong phạm vi này. |
+| `apps/api/src/modules/tasks/`<br>`apps/web/src/features/tasks/`<br>`packages/shared-types/src/task.types.ts`<br>`packages/database/prisma/schema/task.prisma` | **Dev 2** | Chỉ Dev 2 được sửa/tạo mới trong phạm vi này. |
+| `apps/api/src/modules/chat/`<br>`apps/api/src/modules/notifications/`<br>`apps/web/src/features/chat/`<br>`apps/web/src/features/notifications/`<br>`packages/shared-types/src/chat.types.ts`<br>`packages/shared-types/src/notification.types.ts`<br>`packages/database/prisma/schema/chat.prisma`<br>`packages/database/prisma/schema/notification.prisma` | **Dev 3** | Chỉ Dev 3 được sửa/tạo mới trong phạm vi này. |
+| `packages/database/prisma/schema/base.prisma`<br>`apps/api/src/core/`<br>`apps/web/src/shared/`<br>`packages/shared-types/src/user.types.ts` | **SHARED** | Cần sự đồng ý của cả 3 dev trước khi sửa. |
 
 ---
 
@@ -32,6 +32,11 @@
 ---
 
 ## 3. TIÊU CHUẨN KIẾN TRÚC NHANH
+
+### Database Multi-Schema (Prisma Schema Folder)
+- Sử dụng tính năng `prismaSchemaFolder`. Mỗi module có file `.prisma` độc lập trong `packages/database/prisma/schema/`.
+- Thay đổi schema của module nào thì dev phụ trách module đó **chỉ sửa file `.prisma` tương ứng** (ví dụ: Dev 1 sửa `attendance.prisma`, Dev 2 sửa `task.prisma`).
+- Tuyệt đối không có xung đột Merge conflict trên Database Schema!
 
 ### Backend (NestJS)
 - **Controller**: `@UseGuards(JwtAuthGuard)`, nhận `@CurrentUser()`, gọi duy nhất method của service module đó.

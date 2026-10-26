@@ -1,0 +1,78 @@
+// ============================================================
+// [Dev 1] — Module Điểm Danh & Ca Làm Việc
+// Chủ sở hữu: Dev 1
+// ============================================================
+
+model Attendance {
+  id            String         @id @default(cuid())
+  userId        String         @map("user_id")
+  status        WorkStatus
+  checkedInAt   DateTime       @map("checked_in_at")
+  checkedOutAt  DateTime?      @map("checked_out_at")
+  checkInLabel  CheckInLabel?  @map("check_in_label")
+  checkOutLabel CheckOutLabel? @map("check_out_label")
+  clientIp      String?        @map("client_ip")
+  note          String?
+  workLocation  String?        @map("work_location")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  user User            @relation(fields: [userId], references: [id])
+  logs AttendanceLog[]
+
+  @@unique([userId, checkedInAt])
+  @@map("attendances")
+  @@index([userId])
+  @@index([checkedInAt])
+}
+
+model AttendanceLog {
+  id           String      @id @default(cuid())
+  attendanceId String      @map("attendance_id")
+  userId       String      @map("user_id")
+  action       String      // "CHECK_IN", "CHECK_OUT", "STATUS_CHANGED", "AUTO_CLOSED"
+  fromStatus   WorkStatus? @map("from_status")
+  toStatus     WorkStatus  @map("to_status")
+  note         String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@map("attendance_logs")
+  @@index([attendanceId])
+  @@index([userId])
+}
+
+model WorkConfig {
+  id                 String   @id @default(cuid())
+  lateThresholdTime  String   @default("07:55") @map("late_threshold_time")
+  earlyCheckoutTime  String   @default("17:30") @map("early_checkout_time")
+  autoCloseTime      String   @default("23:59") @map("auto_close_time")
+  officeAllowedIps   String[] @map("office_allowed_ips")
+  holidayDates       String[] @map("holiday_dates")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("work_configs")
+}
+
+enum WorkStatus {
+  AT_OFFICE
+  REMOTE
+  ON_DUTY
+  ON_LEAVE
+  SICK_LEAVE
+  ABSENT
+  NOT_CHECKED_IN
+}
+
+enum CheckInLabel {
+  ON_TIME
+  LATE
+}
+
+enum CheckOutLabel {
+  NORMAL
+  EARLY
+  MISSING
+}
