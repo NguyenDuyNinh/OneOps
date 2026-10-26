@@ -1,0 +1,20 @@
+{
+  "name": "oneops",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "build": "pnpm --filter './packages/*' build && pnpm --filter './apps/*' build",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "test": "pnpm --recursive test",
+    "db:migrate": "pnpm --filter @oneops/database migrate:dev",
+    "db:generate": "pnpm --filter @oneops/database generate",
+    "db:seed": "pnpm --filter @oneops/database seed",
+    "db:studio": "pnpm --filter @oneops/database studio",
+    "db:reset": "pnpm --filter @oneops/database migrate:reset"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
