@@ -5,7 +5,7 @@
  * Vì sao phải sinh: nếu mọi người cùng thêm màn hình vào một `nav-items.tsx` thì file đó
  * là điểm conflict số 1 của repo (17 người, mỗi màn hình mới sửa 1–2 dòng). Thay vào đó:
  * - mỗi module tự khai báo `features/<surface>/<module>/nav.tsx` (file riêng, không ai chạm);
- * - script này quét và ráp thành `features/<surface>/nav.generated.ts` (đã gitignore).
+ * - script này quét và ráp thành `features/<surface>/navigation/generated.ts` (đã gitignore).
  *
  * Chạy tự động trong `dev`, `build`, `typecheck` của apps/web. KHÔNG sửa tay file generated.
  *
@@ -56,20 +56,22 @@ function generateFor(surface) {
     return { dir: name, exportName };
   });
 
-  const hasBase = existsSync(join(surfaceDir, "nav-base.tsx"));
+  // Registry + kiểu + nhóm cố định nằm trong module `navigation` của bề mặt.
+  const navDir = join(surfaceDir, "navigation");
+  const hasBase = existsSync(join(navDir, "base.tsx"));
   const lines = [
     "/* eslint-disable */",
-    "// ⚠️ FILE ĐƯỢC SINH TỰ ĐỘNG bởi scripts/gen-nav.mjs — KHÔNG SỬA TAY.",
+    "// ⚠️ FILE ĐƯỢC SINH TỰ ĐỘNG bởi scripts/gen-nav.mjs — KHÔNG SỬA TAY, ĐÃ GITIGNORE.",
     "// Thêm màn hình: tạo `features/" + surface + "/<module>/nav.tsx` rồi chạy `pnpm nav:gen`",
     "// (hoặc chỉ cần khởi động lại `pnpm dev` / chạy `pnpm typecheck`).",
     "",
-    'import type { NavSection } from "./app-shell/nav";',
+    'import type { NavSection } from "./types";',
   ];
   if (hasBase) {
-    lines.push('import { navFirst, navLast } from "./nav-base";');
+    lines.push('import { navFirst, navLast } from "./base";');
   }
   for (const { dir, exportName } of entries) {
-    lines.push(`import { ${exportName} } from "./${dir}/nav";`);
+    lines.push(`import { ${exportName} } from "../${dir}/nav";`);
   }
   lines.push(
     "",
@@ -81,7 +83,7 @@ function generateFor(surface) {
     "",
   );
 
-  const target = join(surfaceDir, "nav.generated.ts");
+  const target = join(navDir, "generated.ts");
   const next = lines.join("\n");
   const prev = existsSync(target) ? readFileSync(target, "utf8") : "";
   if (prev !== next) writeFileSync(target, next, "utf8");

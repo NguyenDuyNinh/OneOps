@@ -17,17 +17,18 @@ Copy `features/_template/` → `features/<surface>/<module>/` rồi đổi tên.
 
 1. Tạo `features/admin/<module>/nav.tsx`:
    ```tsx
+   import type { NavSection } from "@/features/admin/navigation";
    export const ordersNav: NavSection = { name: "Orders", icon: <BagIcon />, path: "/admin/orders", items: [...] };
    ```
    Tên export = `<camelCaseTênThưMục>Nav` (script sẽ báo lỗi nếu sai).
 2. Chạy `pnpm nav:gen` (hoặc `pnpm dev` / `pnpm typecheck` — tự chạy).
-3. `features/admin/nav.generated.ts` được sinh tự động và **đã gitignore** → không ai conflict.
+3. `features/admin/navigation/generated.ts` được sinh tự động và **đã gitignore** → không ai conflict.
 
 ## 3. File dùng chung — phải xin review theo `CODEOWNERS`
 
 | File | Ai sửa |
 |---|---|
-| `features/auth/**`, `features/admin/app-shell/**`, `features/admin/nav-base.tsx` | owner platform/shell |
+| `features/auth/**`, `features/admin/app-shell/**`, `features/admin/navigation/**` | owner platform/shell |
 | `<module>/ui/**` (UI riêng của module) | **chính dev của module** — không cần xin phép ai |
 | `apps/api/src/app.module.ts` (thêm module mới) | owner platform |
 | `package.json`, `pnpm-lock.yaml` | ai thêm dependency thì tự sửa |
@@ -82,7 +83,7 @@ pnpm verify        # nav:gen + kiểm tra ranh giới + typecheck API/web
 
 - **Một PR = một màn hình / một module.** PR nhỏ thì conflict gần như bằng 0.
 - **Rebase, không merge `main` vào branch**: `git pull --rebase origin main`.
-- Không sửa file generated (`nav.generated.ts`, `apps/api/dist`, `.next`).
+- Không sửa file generated (`features/*/navigation/generated.ts`, `apps/api/dist`, `.next`).
 - Không format lại file không liên quan (làm diff phình ra và tranh chấp với người khác).
 - Không đổi `pnpm-lock.yaml` bằng tay.
 

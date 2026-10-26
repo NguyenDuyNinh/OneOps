@@ -17,8 +17,7 @@ export { SidebarProvider, useSidebar } from "./context/SidebarContext";
 // Theme (ThemeProvider/useTheme) KHÔNG còn ở đây: nó bọc toàn site ở `app/layout.tsx`,
 // nên là hạ tầng dùng chung và thuộc `features/auth` (xem features/auth/index.ts).
 
-// Navigation KHÔNG export ở đây: mỗi bề mặt có registry riêng do `scripts/gen-nav.mjs` sinh
-// (`features/<surface>/nav.generated.ts`), tránh mọi người sửa chung một file.
-export type { NavSection, SubMenuItem } from "./nav";
+// Navigation KHÔNG export ở đây: nó là module riêng `features/<surface>/navigation`
+// (registry sinh tự động bởi `scripts/gen-nav.mjs`), tránh mọi người sửa chung một file.
 
 export { SIDEBAR_CLASSES, SIDEBAR_PANEL } from "./constants";

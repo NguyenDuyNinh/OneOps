@@ -107,8 +107,10 @@ oneops/
 │       │   ├── features/                   # Chia theo BỀ MẶT (surface)
 │       │   │   ├── auth/                   # [DÙNG CHUNG] đăng nhập, session, api-client, UserRole
 │       │   │   ├── admin/                  # Bề mặt quản trị — route /admin/*
-│       │   │   │   ├── nav-base.tsx        #   nhóm menu cố định (tổng quan, auth)
-│       │   │   │   ├── nav.generated.ts    #   menu ráp tự động — KHÔNG sửa tay, đã gitignore
+│       │   │   │   ├── navigation/         #   menu của bề mặt (module riêng)
+│       │   │   │   │   ├── types.ts        #     NavSection, SubMenuItem
+│       │   │   │   │   ├── base.tsx        #     nhóm cố định (tổng quan, auth)
+│       │   │   │   │   └── generated.ts    #     ráp tự động — KHÔNG sửa tay, đã gitignore
 │       │   │   │   ├── app-shell/          #   hạ tầng bề mặt: header, sidebar, theme context
 │       │   │   │   │   └── ui/             #     UI riêng của shell (dropdown...)
 │       │   │   │   └── users/              #   quản lý tài khoản

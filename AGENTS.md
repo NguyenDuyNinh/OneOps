@@ -72,7 +72,7 @@
 - **Theme là global, thuộc `features/auth`**: `ThemeProvider`/`useTheme` ở `features/auth/context/ThemeContext.tsx`, được bọc **một lần duy nhất** ở `app/layout.tsx`. Cấm bọc lại `ThemeProvider` ở layout con (2 provider = 2 nguồn state, theme lệch giữa các nhánh).
 - **Trang auth (`app/(auth)/**`) chỉ dùng UI của `features/auth`**: cấm import component/UI từ `features/admin/**` hoặc `features/employee/**`. Cần gì chưa có thì viết vào `features/auth/ui/`. `pnpm lint:structure` chặn vi phạm này.
 - **Kiểm tra ranh giới**: `pnpm lint:structure` (chạy trong `pnpm verify` + CI) chặn import UI chéo module, import xuyên module không qua barrel, `admin` ↔ `employee`, `console.log`.
-- **Navigation**: mỗi module tự khai báo `features/<surface>/<module>/nav.tsx` → `export const <module>Nav: NavSection`. Registry `features/<surface>/nav.generated.ts` do `scripts/gen-nav.mjs` sinh (đã gitignore) — **cấm sửa tay**, cấm thêm màn hình bằng cách sửa file menu chung.
+- **Navigation = module riêng `features/<surface>/navigation/`**: `types.ts` (kiểu `NavSection`), `base.tsx` (nhóm cố định đầu/cuối), `generated.ts` (registry, **sinh tự động + đã gitignore**). Mỗi module nghiệp vụ tự khai báo `features/<surface>/<module>/nav.tsx` → `export const <module>Nav: NavSection`; `scripts/gen-nav.mjs` ráp tất cả lại. **Cấm sửa tay `generated.ts`**, cấm thêm màn hình bằng cách sửa file menu chung. `navigation` là **hạ tầng của bề mặt** nên module nào cũng được `import type { NavSection }` từ `@/features/<surface>/navigation` (import type bị xoá khi compile → không tạo vòng phụ thuộc).
 - **Session**: `saveSession`/`getAccessToken`/`clearSession` tại `features/auth/lib/auth-storage.ts`.
 - **Styling**: Ưu tiên CSS Modules (`.module.css`) hoặc CSS Variables trong `globals.css`.
 

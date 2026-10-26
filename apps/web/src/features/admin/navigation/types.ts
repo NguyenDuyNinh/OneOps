@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 
 /**
- * Kiểu dữ liệu navigation của khung quản trị.
+ * Kiểu dữ liệu navigation của một bề mặt (`features/<surface>/navigation/`).
  *
- * Tách khỏi `nav-base.tsx` (nội dung) và khỏi các module (`features/admin/<module>/nav.tsx`)
- * để 17 người có thể thêm màn hình mà **không sửa chung một file**: mỗi module tự khai
- * báo section của mình, `scripts/gen-nav.mjs` ráp lại thành `nav.generated.ts`.
+ * Là file LÁ (chỉ import `react`) để mọi module có thể `import type { NavSection }`
+ * mà không kéo runtime code — nhờ vậy không tạo vòng phụ thuộc:
+ *
+ *   navigation/generated.ts  →  <module>/nav.tsx  →  (type) navigation/types.ts
+ *
+ * Nội dung (`navFirst`/`navLast`) nằm ở `./base`, registry ráp tự động ở `./generated`.
  */
 
 export type SubMenuItem = {

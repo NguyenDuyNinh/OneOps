@@ -1,7 +1,7 @@
 "use client";
 
 import { AppHeader, AppSidebar } from "@/features/admin/app-shell";
-import { navSections } from "@/features/admin/nav.generated";
+import { navSections } from "@/features/admin/navigation";
 import { AuthGuard } from "@/features/auth";
 import React from "react";
 

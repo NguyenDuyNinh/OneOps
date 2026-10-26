@@ -14,4 +14,4 @@
 *.pdf binary
 
 # File sinh tự động: không ai sửa tay, không cần merge.
-apps/web/src/features/*/nav.generated.ts linguist-generated=true
+apps/web/src/features/*/navigation/generated.ts linguist-generated=true

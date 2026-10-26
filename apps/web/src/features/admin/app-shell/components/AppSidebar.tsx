@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { SIDEBAR_CLASSES, SIDEBAR_PANEL } from "../constants";
-import type { NavSection } from "../nav";
+import type { NavSection } from "@/features/admin/navigation";
 
 type TooltipState = { name: string; x: number; y: number } | null;
 
@@ -19,7 +19,7 @@ type TooltipState = { name: string; x: number; y: number } | null;
  * - Mobile: drawer + hamburger header.
  */
 type AppSidebarProps = {
-  /** Navigation của bề mặt hiện tại — lấy từ `features/<surface>/nav.generated.ts`. */
+  /** Navigation của bề mặt hiện tại — lấy từ `features/<surface>/navigation` (registry sinh tự động). */
   sections: NavSection[];
 };
 

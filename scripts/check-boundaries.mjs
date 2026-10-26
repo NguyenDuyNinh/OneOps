@@ -27,12 +27,15 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WEB_SRC = join(ROOT, "apps", "web", "src");
 
-/** Hạ tầng trong một bề mặt: được mọi module của bề mặt đó dùng. */
-const INFRA_MODULES = new Set(["app-shell"]);
+/** Hạ tầng trong một bề mặt: được mọi module của bề mặt đó dùng.
+ *  - `app-shell`: header/sidebar/context.
+ *  - `navigation`: kiểu NavSection + registry menu (sinh tự động).
+ */
+const INFRA_MODULES = new Set(["app-shell", "navigation"]);
 /** Module dùng chung cho mọi bề mặt (đăng nhập, phiên, HTTP client). */
 const SHARED_MODULES = new Set(["auth"]);
 const SURFACES = new Set(["admin", "employee"]);
-const SKIP_FILE = /\/nav\.generated\.ts$/;
+const SKIP_FILE = /\/navigation\/generated\.ts$/;
 
 /** @type {{file: string, line: number, message: string}[]} */
 const violations = [];

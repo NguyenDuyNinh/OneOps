@@ -1,7 +1,7 @@
 "use client";
 
 import { GridIcon, LockIcon, UserCircleIcon } from "@/icons";
-import type { NavSection } from "./app-shell/nav";
+import type { NavSection } from "./types";
 
 /**
  * Các nhóm navigation **không thuộc module nghiệp vụ nào**.
@@ -11,7 +11,7 @@ import type { NavSection } from "./app-shell/nav";
  *
  * Mọi module khác (`features/admin/<module>/nav.tsx`) tự khai báo section của mình và
  * được chèn vào GIỮA hai nhóm này bởi `scripts/gen-nav.mjs`.
- * File này do owner của `app-shell` giữ — hiếm khi phải sửa.
+ * File này (cùng `navigation/`) do owner của bề mặt giữ — hiếm khi phải sửa.
  */
 
 export const navFirst: NavSection[] = [

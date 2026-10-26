@@ -1,7 +1,7 @@
 "use client";
 
 import { UserCircleIcon } from "@/icons";
-import type { NavSection } from "@/features/admin/app-shell";
+import type { NavSection } from "@/features/admin/navigation";
 
 /**
  * Navigation của module "quản lý tài khoản".
@@ -11,7 +11,7 @@ import type { NavSection } from "@/features/admin/app-shell";
  * - Export: `<camelCaseTênModule>Nav` (ở đây: `usersNav`)
  * - Giá trị: một `NavSection` duy nhất.
  *
- * `scripts/gen-nav.mjs` tự quét thư mục và ráp vào `nav.generated.ts`, nên thêm màn
+ * `scripts/gen-nav.mjs` tự quét thư mục và ráp vào `navigation/generated.ts`, nên thêm màn
  * hình mới **không phải sửa file dùng chung nào**.
  */
 export const usersNav: NavSection = {

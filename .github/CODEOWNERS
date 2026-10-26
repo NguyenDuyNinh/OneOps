@@ -21,7 +21,7 @@
 
 /apps/web/src/features/auth/        @NguyenDuyNinh
 /apps/web/src/features/admin/app-shell/  @NguyenDuyNinh
-/apps/web/src/features/admin/nav-base.tsx @NguyenDuyNinh
+/apps/web/src/features/admin/navigation/   @NguyenDuyNinh
 /apps/web/src/features/_template/   @NguyenDuyNinh
 
 # --- Module nghiệp vụ: CHỈ dev phụ trách module review -----------------------

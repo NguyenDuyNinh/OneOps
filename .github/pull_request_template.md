@@ -13,7 +13,7 @@
 
 - [ ] PR chỉ chạm module của tôi (không sửa file của module khác)
 - [ ] `pnpm verify` xanh (nav:gen + ranh giới + typecheck)
-- [ ] Không sửa `nav.generated.ts` / `dist` / `.next`
+- [ ] Không sửa `features/*/navigation/generated.ts` / `dist` / `.next`
 - [ ] Không format lại file không liên quan
 - [ ] Nếu thêm màn hình: đã thêm `features/<surface>/<module>/nav.tsx` (không sửa file nav chung)
 - [ ] Nếu cần component UI: đã **copy** từ `features/_template/ui/` vào `<module>/ui/` (không import UI của module khác)
