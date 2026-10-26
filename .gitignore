@@ -2,6 +2,13 @@
 node_modules/
 .pnpm-store/
 
+# Generated navigation registry (scripts/gen-nav.mjs)
+apps/web/src/features/*/nav.generated.ts
+
+# Next.js tự sinh file này ở cả lần dev lẫn build (agentRules) — không commit,
+# tránh mỗi người một bản khác nhau gây conflict.
+apps/web/AGENTS.md
+
 # Build outputs
 dist/
 .next/
@@ -18,9 +25,6 @@ build/
 # Database
 *.db
 *.sqlite
-
-# Prisma
-packages/database/generated/
 
 # Logs
 logs/

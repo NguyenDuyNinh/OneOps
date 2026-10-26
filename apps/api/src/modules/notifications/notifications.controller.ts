@@ -1,8 +1,8 @@
 import { Controller, Get, Patch, Param, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { CurrentUser } from '../../core/decorators/current-user.decorator';
-import { JwtPayload } from '@oneops/shared-types';
+import { JwtAuthGuard } from '../platform/guards/jwt-auth.guard';
+import { CurrentUser } from '../platform/decorators/current-user.decorator';
+import type { JwtPayload } from '../platform/types/identity.types';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)

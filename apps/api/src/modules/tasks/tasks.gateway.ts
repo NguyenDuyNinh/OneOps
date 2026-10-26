@@ -1,6 +1,7 @@
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
+import type { TaskStatusChangedEvent } from './tasks.types';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class TasksGateway {
@@ -8,7 +9,7 @@ export class TasksGateway {
   server: Server;
 
   @OnEvent('task.status_changed')
-  handleTaskStatusChanged(payload: any) {
+  handleTaskStatusChanged(payload: TaskStatusChangedEvent) {
     this.server.emit('task:status_changed', payload);
   }
 }

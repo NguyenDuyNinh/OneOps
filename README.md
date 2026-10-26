@@ -30,10 +30,13 @@ Trong các dự án truyền thống, khi 3 người cùng làm việc trên m�
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        packages/shared-types                           │
-│                 (Hợp đồng dữ liệu - Nguồn sự thật duy nhất)            │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Types dùng chung
+│  MỖI APP TỰ SỞ HỮU HỢP ĐỒNG DỮ LIỆU (không còn package chung)          │
+│  BE: apps/api/src/modules/<module>/<module>.types.ts                   │
+│  FE: apps/web/src/features/<surface>/<module>/types.ts                 │
+│  BE: platform · database | FE: auth (dùng chung cả 2 bề mặt)            │
+│  UI: mỗi module tự sở hữu `<module>/ui/` — không có UI kit dùng chung   │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                    │ Types nội bộ từng app
         ┌───────────────────────────┼───────────────────────────┐
         ▼                           ▼                           ▼
 ┌───────────────┐           ┌───────────────┐           ┌───────────────┐
@@ -50,8 +53,8 @@ Trong các dự án truyền thống, khi 3 người cùng làm việc trên m�
 
 1. **Phân Ranh Giới Dọc (Vertical Slice Ownership)**:
    Mỗi developer làm chủ hoàn toàn một lát cắt dọc độc lập từ DB Model $\rightarrow$ DTO $\rightarrow$ NestJS Service/Controller $\rightarrow$ Next.js Hook $\rightarrow$ UI Component. Dev 1 không bao giờ phải chạm vào thư mục của Dev 2 hay Dev 3.
-2. **Nguồn Sự Thật Duy Nhất (`packages/shared-types`)**:
-   Mọi Enum, Interface, DTO payload đều được định nghĩa tại một package dùng chung. Khi Backend hoặc Frontend gõ sai 1 ký tự, lệnh `pnpm typecheck` sẽ báo đỏ ngay lập tức trước khi code được đẩy lên Git.
+2. **Mỗi App Tự Sở Hữu Hợp Đồng Dữ Liệu (Vertical Slice Types)**:
+   Backend khai báo model/enum/response/event ngay trong `apps/api/src/modules/<module>/<module>.types.ts`; Frontend khai báo shape mình dùng trong `apps/web/src/features/<surface>/<module>/types.ts`. Cùng một domain ở bề mặt admin và bề mặt nhân viên thì **viết 2 bản** — chấp nhận lặp để hai bề mặt không phụ thuộc nhau; chỉ định danh (`UserRole`, `AuthenticatedUser`) nằm ở `features/auth/types.ts`. Nhờ vậy module là một khối trọn vẹn, không phải sửa file chung khi thêm tính năng — và `pnpm typecheck` vẫn bắt được lệch contract giữa hai phía.
 3. **Kiến Trúc Khớp Nối Lỏng Bằng Sự Kiện (Event-Driven Architecture)**:
    Thay vì Dev 2 `inject` Service của Dev 3 để gửi thông báo, Dev 2 chỉ việc phát ra một sự kiện:
    `this.eventEmitter.emit('task.created', payload)`.
@@ -61,11 +64,11 @@ Trong các dự án truyền thống, khi 3 người cùng làm việc trên m�
 
 ## 2. Sơ Đồ Phân Bổ 3 Kỹ Sư & Ranh Giới Module
 
-| Thành viên | Phân Hệ Nghiệp Vụ | Backend Sở Hữu (`apps/api`) | Frontend Sở Hữu (`apps/web`) | Shared Types (`packages/shared-types`) |
+| Thành viên | Phân Hệ Nghiệp Vụ | Backend Sở Hữu (`apps/api`) | Frontend Sở Hữu (`apps/web`) | Types Sở Hữu |
 |---|---|---|---|---|
-| **👤 Dev 1** | **Điểm Danh & Ca Làm Việc** | `modules/attendance/` | `features/attendance/`<br>`app/attendance/` | `attendance.types.ts` |
-| **👤 Dev 2** | **Quản Lý Task & Kanban Board** | `modules/tasks/` | `features/tasks/`<br>`app/tasks/` | `task.types.ts` |
-| **👤 Dev 3** | **Chat & Trung Tâm Thông Báo** | `modules/chat/`<br>`modules/notifications/` | `features/chat/`<br>`features/notifications/`<br>`app/chat/` | `chat.types.ts`<br>`notification.types.ts` |
+| **👤 Dev 1** | **Điểm Danh & Ca Làm Việc** | `modules/attendance/` | `features/attendance/` (chưa triển khai)<br>route `/admin/attendance` | `attendance.types.ts`<br>`features/attendance/types.ts` |
+| **👤 Dev 2** | **Quản Lý Task & Kanban Board** | `modules/tasks/` | `features/tasks/` (chưa triển khai)<br>route `/admin/tasks` | `tasks.types.ts`<br>`features/tasks/types.ts` |
+| **👤 Dev 3** | **Chat & Trung Tâm Thông Báo** | `modules/chat/`<br>`modules/notifications/` | `features/chat/`<br>`features/notifications/` (chưa triển khai) | `chat.types.ts`<br>`notifications.types.ts`<br>`features/chat/types.ts` |
 
 ---
 
@@ -75,18 +78,20 @@ Trong các dự án truyền thống, khi 3 người cùng làm việc trên m�
 oneops/
 ├── apps/
 │   ├── api/                                # BACKEND: NestJS Framework
+│   │   ├── prisma/
+│   │   │   ├── schema/                     # 1 file/module: users, attendance, tasks,
+│   │   │   │                               # chat, notifications (users giữ datasource)
+│   │   │   └── seed.ts                     # Seed tài khoản mẫu
 │   │   ├── src/
-│   │   │   ├── core/                       # [SHARED] Hạ tầng cốt lõi
-│   │   │   │   ├── prisma.service.ts       # Kết nối DB qua Prisma singleton
-│   │   │   │   ├── guards/                 # JwtAuthGuard, RolesGuard
-│   │   │   │   └── decorators/             # @CurrentUser(), @Roles(), @Public()
 │   │   │   ├── modules/
+│   │   │   │   ├── database/               # [SHARED] PrismaService + DatabaseModule
+│   │   │   │   ├── platform/               # [SHARED] guards/, decorators/, types/
 │   │   │   │   ├── auth/                   # Xác thực JWT, đăng nhập, phân quyền
 │   │   │   │   ├── users/                  # Quản lý hồ sơ nhân viên
-│   │   │   │   ├── attendance/             # [Dev 1] Logic điểm danh, kiểm tra IP văn phòng
-│   │   │   │   ├── tasks/                  # [Dev 2] Máy trạng thái 7 bước, Kanban, đề xuất
-│   │   │   │   ├── chat/                   # [Dev 3] Socket Gateway, phòng chat 1-1 & nhóm
-│   │   │   │   └── notifications/          # [Dev 3] Lắng nghe Event, đẩy In-app notification
+│   │   │   │   ├── attendance/             # [Dev 1] Điểm danh + attendance.types.ts
+│   │   │   │   ├── tasks/                  # [Dev 2] Kanban + tasks.types.ts
+│   │   │   │   ├── chat/                   # [Dev 3] Socket Gateway + chat.types.ts
+│   │   │   │   └── notifications/          # [Dev 3] Event listener + notifications.types.ts
 │   │   │   ├── app.module.ts               # Root Module tổng hợp
 │   │   │   └── main.ts                     # Điểm khởi chạy API (Port 4000)
 │   │   ├── package.json
@@ -95,35 +100,40 @@ oneops/
 │   └── web/                                # FRONTEND: Next.js 14 App Router
 │       ├── src/
 │       │   ├── app/                        # Next.js App Router (Routing)
-│       │   │   ├── attendance/page.tsx     # [Dev 1] Màn hình điểm danh
-│       │   │   ├── tasks/page.tsx          # [Dev 2] Màn hình bảng Kanban
-│       │   │   ├── chat/page.tsx           # [Dev 3] Màn hình hội thoại
+│       │   │   ├── admin/                  # [AuthGuard] tổng quan + users/
+│       │   │   ├── (auth)/signin/          # Đăng nhập
 │       │   │   ├── layout.tsx              # Root HTML Layout
 │       │   │   └── globals.css             # Design tokens, màu sắc, font chữ
-│       │   ├── features/                   # Feature-Sliced Design (Tách biệt tính năng)
-│       │   │   ├── attendance/             # [Dev 1] API client, hooks, components
-│       │   │   ├── tasks/                  # [Dev 2] API client, hooks, components
-│       │   │   ├── chat/                   # [Dev 3] API client, hooks, components
-│       │   │   └── notifications/          # [Dev 3] Popover thông báo, chuông thông báo
-│       │   └── shared/                     # Thư viện dùng chung của Frontend
-│       │       ├── lib/api-client.ts       # Axios instance đính kèm JWT tự động
-│       │       └── lib/socket-client.ts    # Socket.IO client kết nối thời gian thực
+│       │   ├── features/                   # Chia theo BỀ MẶT (surface)
+│       │   │   ├── auth/                   # [DÙNG CHUNG] đăng nhập, session, api-client, UserRole
+│       │   │   ├── admin/                  # Bề mặt quản trị — route /admin/*
+│       │   │   │   ├── nav-base.tsx        #   nhóm menu cố định (tổng quan, auth)
+│       │   │   │   ├── nav.generated.ts    #   menu ráp tự động — KHÔNG sửa tay, đã gitignore
+│       │   │   │   ├── app-shell/          #   hạ tầng bề mặt: header, sidebar, theme context
+│       │   │   │   │   └── ui/             #     UI riêng của shell (dropdown...)
+│       │   │   │   └── users/              #   quản lý tài khoản
+│       │   │   │       ├── ui/             #     UI riêng của module (alert/ button/ modal/ table...)
+│       │   │   │       ├── components/     #     UI nghiệp vụ (UsersTable, UserFormModal...)
+│       │   │   │       ├── hooks/ api/     #     logic + gọi API
+│       │   │   │       └── nav.tsx         #     menu của module (tự ráp, không sửa file chung)
+│       │   │   ├── employee/               # Bề mặt nhân viên — thêm module tại đây (chưa triển khai)
+│       │   │   └── _template/              # Mẫu copy cho slice mới
+│       │   │       └── ui/                 #   bộ UI mẫu đầy đủ — copy vào <module>/ui/
+│       │   └── icons/                      # Bộ icon SVG dùng chung
 │       ├── package.json
 │       └── tsconfig.json
 │
-├── packages/
-│   ├── database/                           # ORM & DATABASE SCHEMA
-│   │   ├── prisma/schema/            # Khai báo Models, Enums, Relations PostgreSQL
-│   │   └── src/index.ts                    # Export PrismaClient dùng chung
-│   ├── shared-types/                       # TYPESCRIPT TYPES (HỢP ĐỒNG DỮ LIỆU)
-│   │   └── src/
-│   │       ├── attendance.types.ts         # [Dev 1] Types & DTOs điểm danh
-│   │       ├── task.types.ts               # [Dev 2] Types & DTOs công việc
-│   │       ├── chat.types.ts               # [Dev 3] Types tin nhắn, phòng chat
-│   │       ├── notification.types.ts       # [Dev 3] Types sự kiện thông báo
-│   │       └── user.types.ts               # Types người dùng & JWT
-│   └── config/                             # Cấu hình TypeScript base
+├── scripts/
+│   ├── gen-nav.mjs                         # Sinh menu từ features/<surface>/<module>/nav.tsx
+│   ├── check-boundaries.mjs                # Chặn import chéo bề mặt/module (dùng trong CI)
+│   └── ui-drift.mjs                        # Báo cáo bản UI copy nào đã lệch bộ mẫu (pnpm ui:drift)
 │
+├── .github/
+│   ├── CODEOWNERS                          # Chủ sở hữu theo vùng → tự request review
+│   ├── pull_request_template.md
+│   └── workflows/ci.yml                    # verify + typecheck + build
+│
+├── CONTRIBUTING.md                         # Quy tắc PR, xử lý conflict lockfile/schema
 ├── AGENTS.md                               # Luật tối cao cho AI & Developers
 ├── CLEANCODE.md                            # Cẩm nang quy tắc viết code chi tiết
 ├── pnpm-workspace.yaml                     # Quản lý liên kết nội bộ Monorepo
@@ -169,19 +179,28 @@ Dưới đây là ví dụ minh họa trực quan luồng vận hành khi **Qu�
 
 Mỗi khi nhận một User Story mới, developer thực hiện tuần tự theo 5 bước:
 
-### Bước 1: Khai báo Hợp đồng Dữ liệu (Shared Types)
-Mở file types của module mình trong `packages/shared-types/src/` để thêm interface hoặc DTO:
+### Bước 1: Khai báo Hợp đồng Dữ liệu trong Module
+Không còn package `shared-types`: mỗi app tự khai báo contract của mình ngay trong slice.
 ```typescript
-// packages/shared-types/src/task.types.ts
-export interface CreateTaskDto {
+// BE — apps/api/src/modules/tasks/tasks.types.ts (model / response / event payload)
+export interface TaskSummary {
+  id: string;
   title: string;
-  deadline: string;
-  assigneeId: string;
+  deadline: Date;
+}
+
+// FE — apps/web/src/features/tasks/types.ts (shape FE thực sự dùng)
+export interface TaskSummary {
+  id: string;
+  title: string;
+  deadline: string; // ISO 8601 sau khi serialize qua HTTP
 }
 ```
+* Payload **request** phía API vẫn phải là class DTO `class-validator` trong `modules/<module>/dto/` — không khai báo lại các DTO đó trong `*.types.ts`.
+* Type dùng từ 2 feature trở lên đặt tại `apps/api/src/modules/platform/types/` (BE) hoặc `apps/web/src/features/auth/types.ts` (FE, chỉ định danh/vai trò). Type nghiệp vụ ở FE **cố ý lặp** giữa bề mặt admin và employee.
 
 ### Bước 2: Bổ sung Database Model (Nếu có)
-Nếu tính năng cần bảng mới, tạo PR sửa `packages/database/prisma/schema/<module>.prisma` và chạy:
+Nếu tính năng cần bảng mới, tạo PR sửa `apps/api/prisma/schema/<module>.prisma` và chạy:
 ```bash
 pnpm db:generate
 ```

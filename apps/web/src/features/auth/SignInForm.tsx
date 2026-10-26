@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import Alert from "@/core/ui/alert/Alert";
-import Button from "@/core/ui/button/Button";
-import Checkbox from "@/core/ui/form/Checkbox";
-import Input from "@/core/ui/form/InputField";
-import Label from "@/core/ui/form/Label";
-import { isAuthenticated } from "@/core/lib/auth-storage";
+import Alert from "./ui/Alert";
+import Button from "./ui/Button";
+import Checkbox from "./ui/Checkbox";
+import Input from "./ui/InputField";
+import Label from "./ui/Label";
+import { isAuthenticated } from "./lib/auth-storage";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import { useLogin } from "./hooks/useLogin";
 

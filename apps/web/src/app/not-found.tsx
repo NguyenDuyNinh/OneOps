@@ -1,4 +1,4 @@
-import GridShape from "@/core/shared/GridShape";
+import { GridShape } from "@/features/auth";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";

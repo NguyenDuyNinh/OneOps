@@ -3,7 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { AuthenticatedUser, JwtPayload, LoginResponse, UserRole } from '@oneops/shared-types';
+import type { JwtPayload, UserRole } from '../platform/types/identity.types';
+import type { AuthenticatedUser, LoginResponse } from './auth.types';
 
 /** Thông báo chung cho mọi trường hợp sai thông tin — tránh dò email tồn tại. */
 const INVALID_CREDENTIALS_MESSAGE = 'Email hoặc mật khẩu không chính xác.';

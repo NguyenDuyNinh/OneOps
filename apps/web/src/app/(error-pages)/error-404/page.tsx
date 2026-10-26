@@ -1,4 +1,4 @@
-import GridShape from "@/core/shared/GridShape";
+import { GridShape } from "@/features/auth";
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";

@@ -1,0 +1,62 @@
+// ============================================================
+// [SHARED] — Module Người dùng & Định danh
+// Chủ sở hữu: SHARED (cần đồng ý của cả 3 dev)
+//
+// File này cũng giữ `generator` + `datasource` — Prisma schema folder chỉ cho
+// phép khai báo đúng một lần cho toàn bộ schema, đặt ở đây vì `User` là model
+// gốc mà mọi module khác tham chiếu tới.
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(EMPLOYEE)
+  avatarUrl    String?  @map("avatar_url")
+  departmentId String?  @map("department_id")
+  managerId    String?  @map("manager_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // [Dev 1] Attendance relations
+  attendances      Attendance[]
+  attendanceLogs   AttendanceLog[]
+
+  // [Dev 2] Task relations
+  assignedTasks    Task[]         @relation("TaskAssignee")
+  createdTasks     Task[]         @relation("TaskCreator")
+  taskLogs         TaskLog[]
+  taskProposals    TaskProposal[]
+  taskComments     TaskComment[]
+
+  // [Dev 3] Chat & Notification relations
+  chatMemberships  ChatMember[]
+  sentMessages     Message[]
+  notifications    Notification[]
+
+  // Self-relation (cây quản lý)
+  manager          User?  @relation("UserManager", fields: [managerId], references: [id])
+  subordinates     User[] @relation("UserManager")
+
+  @@map("users")
+  @@index([email])
+  @@index([managerId])
+}
+
+enum UserRole {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PrismaService } from '../../core/prisma.service';
-import { NotificationType } from '@oneops/shared-types';
+import { PrismaService } from '../database';
+import { NotificationType } from './notifications.types';
+// Event payload thuộc về module phát (consumer chỉ import type, không import service).
+import type { AttendanceCheckedInEvent } from '../attendance/attendance.types';
+import type { TaskCreatedEvent } from '../tasks/tasks.types';
 
 @Injectable()
 export class NotificationsService {
@@ -10,7 +13,7 @@ export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   @OnEvent('task.created')
-  async handleTaskCreated(payload: { taskId: string; taskTitle: string; assigneeId: string }) {
+  async handleTaskCreated(payload: TaskCreatedEvent) {
     await this.createNotification({
       userId: payload.assigneeId,
       type: NotificationType.TASK_ASSIGNED,
@@ -21,7 +24,7 @@ export class NotificationsService {
   }
 
   @OnEvent('attendance.checked_in')
-  async handleAttendanceCheckedIn(payload: { userId: string; status: string }) {
+  async handleAttendanceCheckedIn(payload: AttendanceCheckedInEvent) {
     this.logger.log(`Received attendance.checked_in event for user ${payload.userId}`);
   }
 

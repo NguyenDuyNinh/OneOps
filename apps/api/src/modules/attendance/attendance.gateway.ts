@@ -1,7 +1,7 @@
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
-import { AttendanceCheckedInEvent } from '@oneops/shared-types';
+import type { AttendanceCheckedInEvent } from './attendance.types';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class AttendanceGateway {

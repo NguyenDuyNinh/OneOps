@@ -1,0 +1,50 @@
+name: CI
+
+# Mục tiêu: chặn PR làm trôi kiến trúc hoặc lệch contract TRƯỚC khi merge,
+# thay vì để 17 người phát hiện lúc chạy.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Prisma cần biến này để load schema khi generate (không kết nối DB thật).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/oneops
+      JWT_SECRET: ci-only-secret
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate + validate
+        run: |
+          pnpm --filter @oneops/api db:generate
+          pnpm --filter @oneops/api exec prisma validate
+
+      - name: Ranh giới kiến trúc (admin/employee, barrel, console.log)
+        run: pnpm lint:structure
+
+      - name: Typecheck (API + web)
+        run: pnpm typecheck
+
+      - name: Build web
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000

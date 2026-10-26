@@ -1,0 +1,35 @@
+# CODEOWNERS — chủ sở hữu theo vùng (Zero-Conflict Boundary)
+#
+# GitHub tự động request review đúng người khi PR chạm vào vùng đó.
+# Cú pháp: <pattern> <@user | @org/team> [nhiều owner...]
+#
+# ⚠️ TODO khi có team trên GitHub: thay `@NguyenDuyNinh` bằng team thật, ví dụ
+#      /apps/web/src/features/admin/users/ @your-org/dev-users
+#      /apps/web/src/features/employee/    @your-org/employee-team
+#      /apps/web/src/features/auth/        @your-org/platform-team
+#   Team là cách duy nhất để 17 người không sửa chéo vùng của nhau.
+
+# Mặc định: owner repo (đổi thành team platform khi có).
+*                                   @NguyenDuyNinh
+
+# --- Hạ tầng dùng chung: cần đồng ý của platform + các bên liên quan -----------
+/apps/api/prisma/                   @NguyenDuyNinh
+/apps/api/src/modules/platform/     @NguyenDuyNinh
+/apps/api/src/modules/database/     @NguyenDuyNinh
+/apps/api/src/modules/users/        @NguyenDuyNinh
+/apps/api/src/app.module.ts         @NguyenDuyNinh
+
+/apps/web/src/features/auth/        @NguyenDuyNinh
+/apps/web/src/features/admin/app-shell/  @NguyenDuyNinh
+/apps/web/src/features/admin/nav-base.tsx @NguyenDuyNinh
+/apps/web/src/features/_template/   @NguyenDuyNinh
+
+# --- Module nghiệp vụ: CHỈ dev phụ trách module review -----------------------
+# UI (`<module>/ui/**`) là bản riêng của module → dev module tự do sửa, không cần review chéo.
+/apps/web/src/features/admin/users/  @NguyenDuyNinh
+
+# --- Quy ước & tooling --------------------------------------------------------
+/AGENTS.md                          @NguyenDuyNinh
+/CLEANCODE.md                       @NguyenDuyNinh
+/scripts/                           @NguyenDuyNinh
+/.github/                           @NguyenDuyNinh

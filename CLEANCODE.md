@@ -259,9 +259,16 @@ Một React Component không được vượt quá **150 dòng code**. Nếu vư
   }
   ```
 
-### 8.2 Single Source of Truth
-* Tất cả kiểu dữ liệu dùng chung giữa API và Web Client **bắt buộc** nằm trong `packages/shared-types`.
-* Frontend chỉ việc `import { Task, WorkStatus } from '@oneops/shared-types'`, tuyệt đối không tự gõ lại `interface Task { ... }` ở thư mục web.
+### 8.2 Type Thuộc Về App Sở Hữu (Vertical Slice)
+* OneOps **không còn** package `shared-types`. Mỗi app tự định nghĩa contract của chính nó:
+  * **Backend**: `apps/api/src/modules/<module>/<module>.types.ts` (model, enum, response, event payload).
+  * **Frontend**: `apps/web/src/features/<surface>/<module>/types.ts` (shape request/response mà FE dùng).
+  * **Dùng chung toàn app**: `apps/api/src/modules/platform/types/` và `apps/web/src/features/auth/types.ts` (chỉ định danh/vai trò).
+* Payload request phía API **bắt buộc** là class DTO có decorator `class-validator` trong `dto/`; file `*.types.ts` không khai báo lại các DTO đó.
+* Chấp nhận FE/BE có hai interface song song cho cùng một shape — đây là cái giá của việc tách package. Bù lại, khi API đổi contract thì sửa đúng một file types trong module và `pnpm typecheck` sẽ chỉ ra mọi chỗ lệch.
+* Trong **cùng một app**, không được định nghĩa trùng lặp type **định danh** (`UserRole`, `AuthenticatedUser`, `JwtPayload`) — lấy từ `features/auth/types.ts` (FE) hoặc `modules/platform/types/` (BE).
+* Type **nghiệp vụ** thì ngược lại: mỗi bề mặt (`features/admin/<module>`, `features/employee/<module>`) khai báo bản riêng. Đây là chủ ý — sửa bề mặt admin không được làm vỡ bề mặt nhân viên.
+* **UI là của riêng module**: mỗi module sở hữu `<module>/ui/` và chỉ dùng UI của chính nó. Không có UI kit dùng chung — cần component thì copy từ `features/_template/ui/`. Sửa `admin/users/ui/Button.tsx` không được ảnh hưởng `auth/ui/Button.tsx`.
 
 ---
 

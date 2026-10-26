@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { LoginDto } from "@oneops/shared-types";
+import type { LoginDto } from "../types";
 import { authApi } from "../api/auth.api";
-import { saveSession } from "@/core/lib/auth-storage";
-import { ApiError } from "@/core/lib/api-client";
+import { saveSession } from "../lib/auth-storage";
+import { ApiError } from "../lib/api-client";
 
 const DEFAULT_REDIRECT = "/admin";
 const CONNECTION_ERROR_MESSAGE =

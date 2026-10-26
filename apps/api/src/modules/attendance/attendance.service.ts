@@ -1,8 +1,9 @@
 import { Injectable, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '../../core/prisma.service';
+import { PrismaService } from '../database';
 import { CheckInDto } from './dto/check-in.dto';
-import { WorkStatus, CheckInLabel } from '@oneops/shared-types';
+import { WorkStatus, CheckInLabel } from './attendance.types';
+import type { AttendanceCheckedInEvent } from './attendance.types';
 
 @Injectable()
 export class AttendanceService {
@@ -48,12 +49,13 @@ export class AttendanceService {
     });
 
     // Cross-module notification thông qua Event — KHÔNG import NotificationService
-    this.eventEmitter.emit('attendance.checked_in', {
+    const event: AttendanceCheckedInEvent = {
       userId,
       attendanceId: record.id,
       status: record.status,
       checkedInAt: record.checkedInAt,
-    });
+    };
+    this.eventEmitter.emit('attendance.checked_in', event);
 
     this.logger.log(`User ${userId} checked in with status ${record.status}`);
     return record;

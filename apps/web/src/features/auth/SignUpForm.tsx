@@ -1,7 +1,7 @@
 "use client";
-import Checkbox from "@/core/ui/form/Checkbox";
-import Input from "@/core/ui/form/InputField";
-import Label from "@/core/ui/form/Label";
+import Checkbox from "./ui/Checkbox";
+import Input from "./ui/InputField";
+import Label from "./ui/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState } from "react";

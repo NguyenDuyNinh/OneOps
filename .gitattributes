@@ -1,0 +1,17 @@
+# Chuẩn hoá line-ending: tránh diff toàn file chỉ vì CRLF/LF khác nhau giữa Windows/macOS.
+* text=auto eol=lf
+
+# File nhị phân — git không diff/merge theo dòng.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+
+# File sinh tự động: không ai sửa tay, không cần merge.
+apps/web/src/features/*/nav.generated.ts linguist-generated=true

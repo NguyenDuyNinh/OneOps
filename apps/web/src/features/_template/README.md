@@ -1,26 +1,36 @@
 # Module Template — Mẫu Vertical Slice (Frontend)
 
-Copy thư mục này thành `apps/web/src/features/<tên-domain-số-ít-kebab-case>/`, rồi:
+Copy thư mục này thành `apps/web/src/features/{admin|employee}/<tên-domain-số-ít-kebab-case>/`, rồi:
 
-1. Đặt tên domain module (VD: `orders`, `products`, `customers`).
-2. Tùy biến UI trong `components/`, logic trong `hooks/`, gọi API trong `api/`, server actions trong `actions/`.
-3. Đăng ký route: tạo `apps/web/src/app/admin/<tên-domain>/page.tsx` import từ `@/features/<tên-domain>` (mọi trang quản trị nằm dưới tiền tố `/admin` và được bảo vệ bởi `apps/web/src/app/admin/layout.tsx`).
-4. Đăng ký menu: thêm 1 entry vào `apps/web/src/core/layout/nav-items.tsx`.
+1. Chọn **bề mặt**: `admin` nếu là màn hình quản trị (route `/admin/*`), `employee` nếu là màn hình nhân viên.
+2. Đặt tên domain module (VD: `orders`, `products`, `customers`).
+3. Tùy biến UI trong `components/`, logic trong `hooks/`, gọi API trong `api/`, server actions trong `actions/`.
+   - Component UI dùng lại (Button, Modal, Table...) → **copy** từ `features/_template/ui/` vào `<module>/ui/` của bạn
+     (xem `features/_template/ui/README.md`). Không import UI của module khác.
+4. Đăng ký route: tạo `apps/web/src/app/admin/<tên-domain>/page.tsx` (bề mặt admin) hoặc `apps/web/src/app/(employee)/<tên-domain>/page.tsx`, import từ `@/features/<surface>/<tên-domain>`. Mọi trang dưới `/admin` đã được bảo vệ bởi `apps/web/src/app/admin/layout.tsx`.
+5. Đăng ký menu: tạo `nav.tsx` **trong thư mục module** và export `<tênModule>Nav` (xem `features/admin/users/nav.tsx`), rồi chạy `pnpm nav:gen`. Không sửa file menu chung nào — registry được sinh tự động.
 
 ## Cấu trúc chuẩn 1 vertical slice
 
 ```text
-features/<domain>/
-├── components/    # UI components riêng domain (PascalCase.tsx)
+features/<surface>/<domain>/
+├── ui/            # UI riêng module — COPY từ features/_template/ui (Button, Modal, Table...)
+├── components/    # UI nghiệp vụ riêng domain (UsersTable, UserFormModal...)
 ├── hooks/         # hooks riêng domain (useXxx.ts)
-├── api/           # API client calls (dùng api-client từ @/core/lib/api-client)
+├── api/           # API client calls (dùng `api` từ @/features/auth)
 ├── actions/       # Server actions ("use server" + zod safeParse)
-├── types.ts       # Type chỉ dùng trong module
+├── types.ts       # Type chỉ dùng trong module (bản riêng của bề mặt này)
 ├── constants.ts   # Hằng số riêng module
 └── index.ts       # ★ Public API — bên ngoài chỉ import từ đây
 ```
 
 ## Nguyên tắc phụ thuộc
 
-- Feature **KHÔNG** import feature khác. Cần dùng chung → nâng lên `core/` (`ui`, `shared`, `lib`, `hooks`, `types`).
-- Mọi truy cập vào module từ route `app/` phải thông qua `index.ts`.
+- `features/admin/*` **KHÔNG** import `features/employee/*` và ngược lại.
+- Dùng chung giữa 2 bề mặt: **copy** sang bề mặt kia (chấp nhận lặp).
+- Hạ tầng kỹ thuật thuần (HTTP client, session, hằng số API, `UserRole`) lấy từ `features/auth/`.
+- **UI: mỗi module một bản riêng** trong `<module>/ui/`, copy từ `features/_template/ui/`. Không import
+  `@/features/<module-khác>/ui/...` — CI (`pnpm lint:structure`) sẽ chặn.
+- Kiểm tra "style trôi": `pnpm ui:drift` — so mọi bản copy với bộ mẫu, báo bản nào đã lệch.
+- Khung quản trị: `features/admin/app-shell/*` (hạ tầng bề mặt, dùng được, không sửa nếu không phải owner).
+- Không có `features/shared`.

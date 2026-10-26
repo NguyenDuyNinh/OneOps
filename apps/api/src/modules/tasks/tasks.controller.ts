@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { CurrentUser } from '../../core/decorators/current-user.decorator';
-import { JwtPayload, TaskStatus } from '@oneops/shared-types';
+import { JwtAuthGuard } from '../platform/guards/jwt-auth.guard';
+import { CurrentUser } from '../platform/decorators/current-user.decorator';
+import type { JwtPayload } from '../platform/types/identity.types';
+import type { TaskStatus } from './tasks.types';
 
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)

@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "pnpm nav:gen && next dev",
+    "build": "pnpm nav:gen && next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "pnpm nav:gen && tsc --noEmit",
+    "nav:gen": "node ../../scripts/gen-nav.mjs",
+    "lint:structure": "node ../../scripts/check-boundaries.mjs",
+    "ui:drift": "node ../../scripts/ui-drift.mjs"
   },
   "dependencies": {
-    "@oneops/shared-types": "workspace:*",
     "@fullcalendar/core": "^6.1.19",
     "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/interaction": "^6.1.19",

@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
-import { TaskStatus, UserRole } from '@oneops/shared-types';
+import { TaskStatus } from './tasks.types';
+import { UserRole } from '../platform/types/identity.types';
 
 export class TaskStateMachine {
   // Bảng 9.1b các chuyển trạng thái hợp lệ

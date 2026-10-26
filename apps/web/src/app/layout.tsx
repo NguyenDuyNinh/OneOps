@@ -1,8 +1,8 @@
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import "flatpickr/dist/flatpickr.css";
-import { SidebarProvider } from "@/core/context/SidebarContext";
-import { ThemeProvider } from "@/core/context/ThemeContext";
+import { ThemeProvider } from "@/features/auth";
+import { SidebarProvider } from "@/features/admin/app-shell";
 
 // Be Vietnam Pro — font thiết kế riêng cho tiếng Việt (đủ glyph có dấu: ơ ư â ê ô ă đ...).
 // Thay cho Outfit vốn chỉ load subset latin và render dấu tiếng Việt không đẹp.

@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { WorkStatus } from '@oneops/shared-types';
+import { WorkStatus } from '../attendance.types';
 
 export class CheckInDto {
   @IsEnum(WorkStatus)

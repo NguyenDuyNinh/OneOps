@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '../../core/prisma.service';
+import { PrismaService } from '../database';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskStateMachine } from './task-state.machine';
-import { TaskStatus, UserRole } from '@oneops/shared-types';
+import { TaskStatus } from './tasks.types';
+import type { TaskCreatedEvent, TaskStatusChangedEvent } from './tasks.types';
+import type { UserRole } from '../platform/types/identity.types';
 
 @Injectable()
 export class TasksService {
@@ -31,13 +33,14 @@ export class TasksService {
       },
     });
 
-    this.eventEmitter.emit('task.created', {
+    const createdEvent: TaskCreatedEvent = {
       taskId: task.id,
       taskTitle: task.title,
       assigneeId: task.assigneeId,
       assignedById: createdById,
       deadline: task.deadline,
-    });
+    };
+    this.eventEmitter.emit('task.created', createdEvent);
 
     return task;
   }
@@ -67,12 +70,13 @@ export class TasksService {
       return updated;
     });
 
-    this.eventEmitter.emit('task.status_changed', {
+    const statusChangedEvent: TaskStatusChangedEvent = {
       taskId: updatedTask.id,
-      fromStatus: task.status,
+      fromStatus: task.status as TaskStatus,
       toStatus: newStatus,
       userId,
-    });
+    };
+    this.eventEmitter.emit('task.status_changed', statusChangedEvent);
 
     return updatedTask;
   }

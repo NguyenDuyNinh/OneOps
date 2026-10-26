@@ -1,5 +1,5 @@
-import { api } from "@/core/lib/api-client";
-import type { LoginDto, LoginResponse } from "@oneops/shared-types";
+import { api } from "../lib/api-client";
+import type { LoginDto, LoginResponse } from "../types";
 
 export const authApi = {
   login: (dto: LoginDto): Promise<LoginResponse> =>

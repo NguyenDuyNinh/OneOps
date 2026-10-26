@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma.service';
-import { ChatRoomType } from '@oneops/shared-types';
+import { PrismaService } from '../database';
 
 @Injectable()
 export class ChatService {

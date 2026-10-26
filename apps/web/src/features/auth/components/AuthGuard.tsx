@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/core/lib/auth-storage";
+import { isAuthenticated } from "../lib/auth-storage";
 
 /**
  * Chặn render nội dung được bảo vệ khi chưa đăng nhập.
