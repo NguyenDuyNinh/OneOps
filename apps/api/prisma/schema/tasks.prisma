@@ -66,20 +66,7 @@ model TaskProposal {
   @@index([status])
 }
 
-model TaskComment {
-  id          String   @id @default(cuid())
-  taskId      String   @map("task_id")
-  authorId    String   @map("author_id")
-  content     String
-  isSystemLog Boolean  @default(false) @map("is_system_log")
-  createdAt   DateTime @default(now()) @map("created_at")
 
-  task   Task @relation(fields: [taskId], references: [id])
-  author User @relation(fields: [authorId], references: [id])
-
-  @@map("task_comments")
-  @@index([taskId])
-}
 
 enum TaskStatus {
   TODO

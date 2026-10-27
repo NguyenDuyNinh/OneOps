@@ -6,7 +6,7 @@ import type { TaskStatusChangedEvent } from './tasks.types';
 @WebSocketGateway({ cors: { origin: '*' } })
 export class TasksGateway {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   @OnEvent('task.status_changed')
   handleTaskStatusChanged(payload: TaskStatusChangedEvent) {
