@@ -18,3 +18,10 @@ export interface PaginatedShifts {
   pageSize: number;
   totalPages: number;
 }
+
+/** DELETE result: null isActive means the Shift row was physically removed. */
+export interface DeleteShiftResponse {
+  id: string;
+  isActive: boolean | null;
+  deleted: boolean;
+}

@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { plainToInstance } = require('class-transformer');
 const { validate } = require('class-validator');
-const { BadRequestException, NotFoundException } = require('@nestjs/common');
+const { BadRequestException, ConflictException, NotFoundException } = require('@nestjs/common');
+const { Prisma } = require('@prisma/client');
 const { CreateShiftDto } = require('./dto/create-shift.dto');
 const { UpdateShiftDto } = require('./dto/update-shift.dto');
 const { ShiftsService } = require('./shifts.service');
@@ -127,4 +128,104 @@ test('returns not found for a missing shift id', async () => {
   const dto = plainToInstance(UpdateShiftDto, { isActive: false });
 
   await assert.rejects(service.update('missing', dto), NotFoundException);
+});
+
+function makeDeleteService({ shift, assignments = [], transactionError } = {}) {
+  const calls = { deletes: [], updates: [] };
+  let transactionOptions;
+  const transaction = {
+    shift: {
+      findUnique: async () => shift,
+      update: async (input) => {
+        calls.updates.push(input);
+        return { id: input.where.id, ...input.data };
+      },
+      delete: async (input) => {
+        calls.deletes.push(input);
+        return { id: input.where.id };
+      },
+    },
+    shiftAssignment: {
+      count: async () => assignments.length,
+    },
+  };
+  const prisma = {
+    $transaction: async (callback, options) => {
+      transactionOptions = options;
+      if (transactionError) throw transactionError;
+      return callback(transaction);
+    },
+  };
+  return {
+    service: new ShiftsService(prisma),
+    calls,
+    getTransactionOptions: () => transactionOptions,
+  };
+}
+
+test('hard-deletes a shift with no assignment inside a serializable transaction', async () => {
+  const { service, calls, getTransactionOptions } = makeDeleteService({
+    shift: { id: 'shift-1', isActive: true },
+  });
+
+  const result = await service.delete('shift-1');
+
+  assert.deepEqual(result, { id: 'shift-1', isActive: null, deleted: true });
+  assert.equal(calls.deletes.length, 1);
+  assert.equal(calls.updates.length, 0);
+  assert.equal(getTransactionOptions().isolationLevel, Prisma.TransactionIsolationLevel.Serializable);
+});
+
+test('soft-disables a shift with assignments and preserves assignment rows', async () => {
+  const assignments = [{ id: 'assignment-1', shiftId: 'shift-1' }];
+  const { service, calls } = makeDeleteService({
+    shift: { id: 'shift-1', isActive: true },
+    assignments,
+  });
+
+  const result = await service.delete('shift-1');
+
+  assert.deepEqual(result, { id: 'shift-1', isActive: false, deleted: false });
+  assert.equal(assignments.length, 1);
+  assert.equal(calls.deletes.length, 0);
+  assert.deepEqual(calls.updates[0].data, { isActive: false });
+});
+
+test('repeated delete is idempotent for an inactive shift that has assignments', async () => {
+  const { service, calls } = makeDeleteService({
+    shift: { id: 'shift-1', isActive: false },
+    assignments: [{ id: 'assignment-1', shiftId: 'shift-1' }],
+  });
+
+  const result = await service.delete('shift-1');
+
+  assert.deepEqual(result, { id: 'shift-1', isActive: false, deleted: false });
+  assert.equal(calls.updates.length, 0);
+  assert.equal(calls.deletes.length, 0);
+});
+
+test('returns not found for a missing shift', async () => {
+  const { service } = makeDeleteService({ shift: null });
+
+  await assert.rejects(service.delete('missing'), NotFoundException);
+});
+
+test('maps serializable transaction conflicts to a retryable business error', async () => {
+  const transactionError = new Prisma.PrismaClientKnownRequestError('write conflict', {
+    code: 'P2034',
+    clientVersion: '5.22.0',
+  });
+  const { service } = makeDeleteService({ transactionError });
+
+  await assert.rejects(service.delete('shift-1'), ConflictException);
+});
+
+test('maps a restrictive foreign-key failure to a clear business error', async () => {
+  const transactionError = new Prisma.PrismaClientKnownRequestError('foreign key failure', {
+    code: 'P2003',
+    clientVersion: '5.22.0',
+  });
+  const { service } = makeDeleteService({ transactionError });
+
+  await assert.rejects(service.delete('shift-1'), ConflictException);
 });

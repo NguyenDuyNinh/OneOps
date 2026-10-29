@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../platform/decorators/current-user.decorator';
 import { Roles } from '../platform/decorators/roles.decorator';
 import { JwtAuthGuard } from '../platform/guards/jwt-auth.guard';
@@ -8,7 +8,7 @@ import type { JwtPayload } from '../platform/types/identity.types';
 import { QueryShiftsDto } from './dto/query-shifts.dto';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
-import type { PaginatedShifts, ShiftListItem } from './shifts.types';
+import type { DeleteShiftResponse, PaginatedShifts, ShiftListItem } from './shifts.types';
 import { ShiftsService } from './shifts.service';
 
 @Controller('shifts')
@@ -36,5 +36,10 @@ export class ShiftsController {
     @Body() dto: UpdateShiftDto,
   ): Promise<ShiftListItem> {
     return this.shiftsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string): Promise<DeleteShiftResponse> {
+    return this.shiftsService.delete(id);
   }
 }

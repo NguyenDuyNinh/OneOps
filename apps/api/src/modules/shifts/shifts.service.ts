@@ -1,11 +1,17 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { QueryShiftsDto } from './dto/query-shifts.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
 import { calculateShiftDurationMinutes } from './shifts-time.util';
-import type { PaginatedShifts, ShiftListItem } from './shifts.types';
+import type { DeleteShiftResponse, PaginatedShifts, ShiftListItem } from './shifts.types';
 
 const SHIFT_LIST_SELECT = {
   id: true,
@@ -140,6 +146,66 @@ export class ShiftsService {
       }
 
       this.logWriteError('cập nhật ca làm việc', error);
+      throw error;
+    }
+  }
+
+  async delete(id: string): Promise<DeleteShiftResponse> {
+    try {
+      return await this.prisma.$transaction(
+        async (transaction: Prisma.TransactionClient): Promise<DeleteShiftResponse> => {
+          const shift = await transaction.shift.findUnique({
+            where: { id },
+            select: { id: true, isActive: true },
+          });
+
+          if (!shift) {
+            throw new NotFoundException('Không tìm thấy ca làm việc.');
+          }
+
+          const assignmentCount = await transaction.shiftAssignment.count({
+            where: { shiftId: id },
+          });
+
+          if (assignmentCount > 0) {
+            if (shift.isActive) {
+              await transaction.shift.update({
+                where: { id },
+                data: { isActive: false },
+                select: { id: true },
+              });
+            }
+
+            return { id, isActive: false, deleted: false };
+          }
+
+          await transaction.shift.delete({ where: { id }, select: { id: true } });
+          return { id, isActive: null, deleted: true };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Không tìm thấy ca làm việc.');
+        }
+
+        if (error.code === 'P2003' || error.code === 'P2014') {
+          throw new ConflictException(
+            'Không thể xóa ca vì đang có lịch phân ca liên quan. Hãy thử lại để vô hiệu hóa ca.',
+          );
+        }
+
+        if (error.code === 'P2034') {
+          throw new ConflictException(
+            'Dữ liệu phân ca vừa thay đổi. Hãy thử lại thao tác xóa ca.',
+          );
+        }
+      }
+
+      this.logWriteError('xóa hoặc vô hiệu hóa ca', error);
       throw error;
     }
   }
