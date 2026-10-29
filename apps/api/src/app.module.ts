@@ -10,6 +10,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ShiftsModule } from './modules/shifts/shifts.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     TaskCommentsModule, // [Dev 2 Subtask: Task Comments]
     ChatModule,        // [Dev 3]
     NotificationsModule, // [Dev 3]
+    ShiftsModule,
   ],
 })
 export class AppModule {}

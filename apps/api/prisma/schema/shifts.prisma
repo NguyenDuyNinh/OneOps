@@ -1,0 +1,31 @@
+// [SHIFTS] — Danh mục ca làm việc và contract nền cho phân ca.
+
+model Shift {
+  id           String           @id @default(cuid())
+  name         String
+  startTime    String           @map("start_time")
+  endTime      String           @map("end_time")
+  breakMinutes Int              @default(0) @map("break_minutes")
+  isActive     Boolean          @default(true) @map("is_active")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  assignments  ShiftAssignment[]
+
+  @@map("shifts")
+  @@index([isActive])
+}
+
+model ShiftAssignment {
+  id           String   @id @default(cuid())
+  shiftId      String   @map("shift_id")
+  employeeId   String   @map("employee_id")
+  workDate     DateTime @db.Date @map("work_date")
+  assignedById String   @map("assigned_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  shift        Shift    @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@map("shift_assignments")
+  @@unique([employeeId, shiftId, workDate])
+  @@index([employeeId, workDate])
+  @@index([shiftId, workDate])
+}
