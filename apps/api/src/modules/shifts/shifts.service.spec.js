@@ -4,11 +4,18 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { plainToInstance } = require('class-transformer');
 const { validate } = require('class-validator');
-const { BadRequestException, ConflictException, NotFoundException } = require('@nestjs/common');
+const {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} = require('@nestjs/common');
 const { Prisma } = require('@prisma/client');
 const { CreateShiftDto } = require('./dto/create-shift.dto');
+const { CreateShiftAssignmentDto } = require('./dto/create-shift-assignment.dto');
 const { UpdateShiftDto } = require('./dto/update-shift.dto');
 const { ShiftsService } = require('./shifts.service');
+const { UserRole } = require('../platform/types/identity.types');
 
 const timestamp = new Date('2026-10-29T00:00:00.000Z');
 
@@ -228,4 +235,264 @@ test('maps a restrictive foreign-key failure to a clear business error', async (
   const { service } = makeDeleteService({ transactionError });
 
   await assert.rejects(service.delete('shift-1'), ConflictException);
+});
+
+function makeAssignmentService(overrides = {}) {
+  const actorUser = overrides.actorUser ?? {
+    id: 'manager-1', role: UserRole.MANAGER, isActive: true,
+  };
+  const employee = Object.hasOwn(overrides, 'employee')
+    ? overrides.employee
+    : { id: 'employee-1', role: UserRole.EMPLOYEE, isActive: true, managerId: 'manager-1' };
+  const shift = Object.hasOwn(overrides, 'shift')
+    ? overrides.shift
+    : {
+        id: 'shift-1', name: 'Day', startTime: '09:00', endTime: '17:00',
+        breakMinutes: 60, isActive: true,
+      };
+  const existingAssignments = overrides.assignments ?? [];
+  const duplicate = overrides.duplicate ?? null;
+  const calls = { createInput: null, overlapQuery: null, transactionOptions: null };
+
+  const transaction = {
+    user: {
+      findUnique: async ({ where }) => {
+        if (where.id === actorUser.id) return actorUser;
+        if (employee && where.id === employee.id) return employee;
+        return null;
+      },
+    },
+    shift: { findUnique: async () => shift },
+    shiftAssignment: {
+      findUnique: async () => duplicate,
+      findMany: async (query) => {
+        calls.overlapQuery = query;
+        return existingAssignments;
+      },
+      create: async ({ data }) => {
+        calls.createInput = { data };
+        return {
+          id: 'assignment-new',
+          ...data,
+          createdAt: timestamp,
+          shift: {
+            id: shift.id,
+            name: shift.name,
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            breakMinutes: shift.breakMinutes,
+            isActive: shift.isActive,
+          },
+        };
+      },
+    },
+  };
+
+  const prisma = {
+    $transaction: async (callback, options) => {
+      calls.transactionOptions = options;
+      if (overrides.transactionError) throw overrides.transactionError;
+      return callback(transaction);
+    },
+  };
+
+  return { service: new ShiftsService(prisma), calls };
+}
+
+function makeAssignmentDto(overrides = {}) {
+  return plainToInstance(CreateShiftAssignmentDto, {
+    shiftId: 'shift-1',
+    employeeId: 'employee-1',
+    workDate: '2026-10-29',
+    ...overrides,
+  });
+}
+
+const managerActor = { sub: 'manager-1', email: 'manager@example.test', role: UserRole.MANAGER };
+
+test('creates assignment with actor id and a timezone-stable calendar date', async () => {
+  const { service, calls } = makeAssignmentService();
+
+  const result = await service.createAssignment(makeAssignmentDto(), managerActor);
+
+  assert.equal(result.employeeId, 'employee-1');
+  assert.equal(result.workDate, '2026-10-29');
+  assert.equal(result.assignedById, managerActor.sub);
+  assert.equal(result.shift.isActive, true);
+  assert.equal(calls.createInput.data.workDate.toISOString(), '2026-10-29T00:00:00.000Z');
+  assert.equal(calls.overlapQuery.where.workDate.gte.toISOString(), '2026-10-28T00:00:00.000Z');
+  assert.equal(calls.overlapQuery.where.workDate.lte.toISOString(), '2026-10-30T00:00:00.000Z');
+  assert.equal(calls.transactionOptions.isolationLevel, Prisma.TransactionIsolationLevel.Serializable);
+});
+
+test('rejects malformed and impossible calendar dates', async () => {
+  for (const workDate of ['2026-2-09', '2026-02-29', '2026-13-01', '2026-04-31']) {
+    const errors = await validate(makeAssignmentDto({ workDate }));
+    assert.ok(errors.some((error) => error.property === 'workDate'), workDate);
+  }
+});
+
+test('rejects empty assignment identifiers', async () => {
+  const errors = await validate(makeAssignmentDto({ shiftId: ' ', employeeId: '' }));
+  assert.ok(errors.some((error) => error.property === 'shiftId'));
+  assert.ok(errors.some((error) => error.property === 'employeeId'));
+});
+
+test('returns not found when the shift does not exist', async () => {
+  const { service } = makeAssignmentService({ shift: null });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    NotFoundException,
+  );
+});
+
+test('rejects assignments to a disabled shift', async () => {
+  const { service } = makeAssignmentService({ shift: {
+    id: 'shift-1', name: 'Disabled', startTime: '09:00', endTime: '17:00',
+    breakMinutes: 30, isActive: false,
+  } });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    BadRequestException,
+  );
+});
+
+test('returns not found when the employee does not exist', async () => {
+  const { service } = makeAssignmentService({ employee: null });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    NotFoundException,
+  );
+});
+
+test('rejects inactive employees and users outside the EMPLOYEE role', async () => {
+  const inactive = makeAssignmentService({ employee: {
+    id: 'employee-1', role: UserRole.EMPLOYEE, isActive: false, managerId: 'manager-1',
+  } });
+  await assert.rejects(
+    inactive.service.createAssignment(makeAssignmentDto(), managerActor),
+    BadRequestException,
+  );
+
+  const managerRecipient = makeAssignmentService({ employee: {
+    id: 'employee-1', role: UserRole.MANAGER, isActive: true, managerId: 'manager-1',
+  } });
+  await assert.rejects(
+    managerRecipient.service.createAssignment(makeAssignmentDto(), managerActor),
+    BadRequestException,
+  );
+});
+
+test('rejects a manager assignment outside their direct reports', async () => {
+  const { service } = makeAssignmentService({ employee: {
+    id: 'employee-1', role: UserRole.EMPLOYEE, isActive: true, managerId: 'another-manager',
+  } });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    ForbiddenException,
+  );
+});
+
+test('rejects an existing employee-shift-date duplicate', async () => {
+  const { service, calls } = makeAssignmentService({ duplicate: { id: 'assignment-existing' } });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    ConflictException,
+  );
+  assert.equal(calls.createInput, null);
+});
+
+test('rejects overlapping assignments on the same day', async () => {
+  const { service } = makeAssignmentService({
+    shift: {
+      id: 'shift-2', name: 'Evening', startTime: '16:00', endTime: '20:00',
+      breakMinutes: 0, isActive: true,
+    },
+    assignments: [{
+      id: 'assignment-existing',
+      workDate: new Date('2026-10-29T00:00:00.000Z'),
+      shift: { startTime: '09:00', endTime: '17:00' },
+    }],
+  });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto({ shiftId: 'shift-2' }), managerActor),
+    ConflictException,
+  );
+});
+
+test('detects a new overnight shift overlapping an existing next-day shift', async () => {
+  const { service } = makeAssignmentService({
+    shift: {
+      id: 'shift-night', name: 'Night', startTime: '22:00', endTime: '06:00',
+      breakMinutes: 30, isActive: true,
+    },
+    assignments: [{
+      id: 'assignment-next-day',
+      workDate: new Date('2026-10-30T00:00:00.000Z'),
+      shift: { startTime: '05:00', endTime: '09:00' },
+    }],
+  });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto({ shiftId: 'shift-night' }), managerActor),
+    ConflictException,
+  );
+});
+
+test('detects a previous-day overnight shift overlapping the requested date', async () => {
+  const { service } = makeAssignmentService({
+    shift: {
+      id: 'shift-morning', name: 'Morning', startTime: '05:00', endTime: '10:00',
+      breakMinutes: 0, isActive: true,
+    },
+    assignments: [{
+      id: 'assignment-previous-day',
+      workDate: new Date('2026-10-28T00:00:00.000Z'),
+      shift: { startTime: '22:00', endTime: '06:00' },
+    }],
+  });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto({ shiftId: 'shift-morning' }), managerActor),
+    ConflictException,
+  );
+});
+
+test('allows shifts that touch exactly without overlapping', async () => {
+  const { service } = makeAssignmentService({
+    shift: {
+      id: 'shift-evening', name: 'Evening', startTime: '17:00', endTime: '22:00',
+      breakMinutes: 0, isActive: true,
+    },
+    assignments: [{
+      id: 'assignment-day',
+      workDate: new Date('2026-10-29T00:00:00.000Z'),
+      shift: { startTime: '09:00', endTime: '17:00' },
+    }],
+  });
+  const result = await service.createAssignment(
+    makeAssignmentDto({ shiftId: 'shift-evening' }),
+    managerActor,
+  );
+  assert.equal(result.shiftId, 'shift-evening');
+});
+
+test('maps transaction serialization failures to a conflict', async () => {
+  const transactionError = new Prisma.PrismaClientKnownRequestError('write conflict', {
+    code: 'P2034', clientVersion: '5.22.0',
+  });
+  const { service } = makeAssignmentService({ transactionError });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    ConflictException,
+  );
+});
+
+test('maps the assignment unique constraint to a conflict', async () => {
+  const uniqueError = new Prisma.PrismaClientKnownRequestError('unique constraint', {
+    code: 'P2002', clientVersion: '5.22.0',
+  });
+  const { service } = makeAssignmentService({ transactionError: uniqueError });
+  await assert.rejects(
+    service.createAssignment(makeAssignmentDto(), managerActor),
+    ConflictException,
+  );
 });

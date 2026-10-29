@@ -25,3 +25,20 @@ export interface DeleteShiftResponse {
   isActive: boolean | null;
   deleted: boolean;
 }
+
+export interface ShiftAssignmentResponse {
+  id: string;
+  shiftId: string;
+  employeeId: string;
+  workDate: string;
+  assignedById: string;
+  createdAt: string;
+  shift: {
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    breakMinutes: number;
+    isActive: boolean;
+  };
+}

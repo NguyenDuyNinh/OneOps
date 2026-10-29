@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -10,8 +12,22 @@ import { PrismaService } from '../database';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { QueryShiftsDto } from './dto/query-shifts.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
-import { calculateShiftDurationMinutes } from './shifts-time.util';
-import type { DeleteShiftResponse, PaginatedShifts, ShiftListItem } from './shifts.types';
+import { CreateShiftAssignmentDto } from './dto/create-shift-assignment.dto';
+import {
+  addUtcCalendarDays,
+  calculateShiftDurationMinutes,
+  getShiftInterval,
+  shiftIntervalsOverlap,
+  toUtcDateOnly,
+} from './shifts-time.util';
+import type { JwtPayload } from '../platform/types/identity.types';
+import { UserRole } from '../platform/types/identity.types';
+import type {
+  DeleteShiftResponse,
+  PaginatedShifts,
+  ShiftAssignmentResponse,
+  ShiftListItem,
+} from './shifts.types';
 
 const SHIFT_LIST_SELECT = {
   id: true,
@@ -26,6 +42,29 @@ const SHIFT_LIST_SELECT = {
 
 type ShiftRow = Prisma.ShiftGetPayload<{ select: typeof SHIFT_LIST_SELECT }>;
 
+const SHIFT_ASSIGNMENT_SELECT = {
+  id: true,
+  shiftId: true,
+  employeeId: true,
+  workDate: true,
+  assignedById: true,
+  createdAt: true,
+  shift: {
+    select: {
+      id: true,
+      name: true,
+      startTime: true,
+      endTime: true,
+      breakMinutes: true,
+      isActive: true,
+    },
+  },
+} satisfies Prisma.ShiftAssignmentSelect;
+
+type ShiftAssignmentRow = Prisma.ShiftAssignmentGetPayload<{
+  select: typeof SHIFT_ASSIGNMENT_SELECT;
+}>;
+
 function toShiftListItem(row: ShiftRow): ShiftListItem {
   return {
     id: row.id,
@@ -36,6 +75,18 @@ function toShiftListItem(row: ShiftRow): ShiftListItem {
     isActive: row.isActive,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function toShiftAssignmentResponse(row: ShiftAssignmentRow): ShiftAssignmentResponse {
+  return {
+    id: row.id,
+    shiftId: row.shiftId,
+    employeeId: row.employeeId,
+    workDate: row.workDate.toISOString().slice(0, 10),
+    assignedById: row.assignedById,
+    createdAt: row.createdAt.toISOString(),
+    shift: row.shift,
   };
 }
 
@@ -206,6 +257,161 @@ export class ShiftsService {
       }
 
       this.logWriteError('xóa hoặc vô hiệu hóa ca', error);
+      throw error;
+    }
+  }
+
+  async createAssignment(
+    dto: CreateShiftAssignmentDto,
+    actor: JwtPayload,
+  ): Promise<ShiftAssignmentResponse> {
+    const workDate = toUtcDateOnly(dto.workDate);
+
+    try {
+      return await this.prisma.$transaction(
+        async (transaction: Prisma.TransactionClient): Promise<ShiftAssignmentResponse> => {
+          const authenticatedActor = await transaction.user.findUnique({
+            where: { id: actor.sub },
+            select: { id: true, role: true, isActive: true },
+          });
+
+          if (
+            !authenticatedActor ||
+            !authenticatedActor.isActive ||
+            authenticatedActor.role !== actor.role ||
+            (authenticatedActor.role !== UserRole.ADMIN &&
+              authenticatedActor.role !== UserRole.MANAGER)
+          ) {
+            throw new ForbiddenException('Tài khoản không có quyền phân ca.');
+          }
+
+          const shift = await transaction.shift.findUnique({
+            where: { id: dto.shiftId },
+            select: {
+              id: true,
+              name: true,
+              startTime: true,
+              endTime: true,
+              breakMinutes: true,
+              isActive: true,
+            },
+          });
+
+          if (!shift) {
+            throw new NotFoundException('Không tìm thấy ca làm việc.');
+          }
+
+          if (!shift.isActive) {
+            throw new BadRequestException('Không thể phân nhân viên vào ca đã vô hiệu hóa.');
+          }
+
+          const employee = await transaction.user.findUnique({
+            where: { id: dto.employeeId },
+            select: { id: true, role: true, isActive: true, managerId: true },
+          });
+
+          if (!employee) {
+            throw new NotFoundException('Không tìm thấy nhân viên.');
+          }
+
+          if (!employee.isActive) {
+            throw new BadRequestException('Không thể phân ca cho tài khoản đã vô hiệu hóa.');
+          }
+
+          if (employee.role !== UserRole.EMPLOYEE) {
+            throw new BadRequestException('Chỉ tài khoản EMPLOYEE được nhận ca làm việc.');
+          }
+
+          if (
+            authenticatedActor.role === UserRole.MANAGER &&
+            employee.managerId !== authenticatedActor.id
+          ) {
+            throw new ForbiddenException('Quản lý chỉ được phân ca cho nhân viên trực tiếp.');
+          }
+
+          const duplicate = await transaction.shiftAssignment.findUnique({
+            where: {
+              employeeId_shiftId_workDate: {
+                employeeId: employee.id,
+                shiftId: shift.id,
+                workDate,
+              },
+            },
+            select: { id: true },
+          });
+
+          if (duplicate) {
+            throw new ConflictException('Nhân viên đã được phân ca này vào ngày đã chọn.');
+          }
+
+          const assignments = await transaction.shiftAssignment.findMany({
+            where: {
+              employeeId: employee.id,
+              workDate: {
+                gte: addUtcCalendarDays(workDate, -1),
+                lte: addUtcCalendarDays(workDate, 1),
+              },
+            },
+            select: {
+              workDate: true,
+              shift: { select: { startTime: true, endTime: true } },
+            },
+          });
+
+          const candidateInterval = getShiftInterval(
+            workDate,
+            shift.startTime,
+            shift.endTime,
+          );
+          const hasOverlap = assignments.some((assignment) =>
+            shiftIntervalsOverlap(
+              candidateInterval,
+              getShiftInterval(
+                assignment.workDate,
+                assignment.shift.startTime,
+                assignment.shift.endTime,
+              ),
+            ),
+          );
+
+          if (hasOverlap) {
+            throw new ConflictException('Nhân viên đã có ca làm việc bị chồng lấn thời gian.');
+          }
+
+          const created = await transaction.shiftAssignment.create({
+            data: {
+              shiftId: shift.id,
+              employeeId: employee.id,
+              workDate,
+              assignedById: authenticatedActor.id,
+            },
+            select: SHIFT_ASSIGNMENT_SELECT,
+          });
+
+          return toShiftAssignmentResponse(created);
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('Nhân viên đã được phân ca này vào ngày đã chọn.');
+        }
+
+        if (error.code === 'P2003' || error.code === 'P2014') {
+          throw new ConflictException('Ca hoặc nhân viên vừa thay đổi. Hãy tải lại và thử lại.');
+        }
+
+        if (error.code === 'P2034') {
+          throw new ConflictException(
+            'Lịch phân ca vừa thay đổi. Hãy tải lại lịch và thử lại thao tác.',
+          );
+        }
+      }
+
+      this.logWriteError('phân ca cho nhân viên', error);
       throw error;
     }
   }
