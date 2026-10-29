@@ -42,3 +42,29 @@ export interface ShiftAssignmentResponse {
     isActive: boolean;
   };
 }
+
+export interface ShiftScheduleItem {
+  assignmentId: string;
+  workDate: string;
+  employee: {
+    id: string;
+    name: string;
+  };
+  shift: {
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    breakMinutes: number;
+    isActive: boolean;
+  };
+  assignedById: string;
+  createdAt: string;
+}
+
+export interface ShiftScheduleResponse {
+  from: string;
+  to: string;
+  items: ShiftScheduleItem[];
+  total: number;
+}

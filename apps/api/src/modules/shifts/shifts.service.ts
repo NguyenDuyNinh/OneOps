@@ -10,6 +10,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database';
 import { CreateShiftDto } from './dto/create-shift.dto';
+import { QueryShiftScheduleDto } from './dto/query-shift-schedule.dto';
 import { QueryShiftsDto } from './dto/query-shifts.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
 import { CreateShiftAssignmentDto } from './dto/create-shift-assignment.dto';
@@ -26,6 +27,8 @@ import type {
   DeleteShiftResponse,
   PaginatedShifts,
   ShiftAssignmentResponse,
+  ShiftScheduleItem,
+  ShiftScheduleResponse,
   ShiftListItem,
 } from './shifts.types';
 
@@ -65,6 +68,28 @@ type ShiftAssignmentRow = Prisma.ShiftAssignmentGetPayload<{
   select: typeof SHIFT_ASSIGNMENT_SELECT;
 }>;
 
+const SHIFT_SCHEDULE_SELECT = {
+  id: true,
+  employeeId: true,
+  workDate: true,
+  assignedById: true,
+  createdAt: true,
+  shift: {
+    select: {
+      id: true,
+      name: true,
+      startTime: true,
+      endTime: true,
+      breakMinutes: true,
+      isActive: true,
+    },
+  },
+} satisfies Prisma.ShiftAssignmentSelect;
+
+type ShiftScheduleRow = Prisma.ShiftAssignmentGetPayload<{
+  select: typeof SHIFT_SCHEDULE_SELECT;
+}>;
+
 function toShiftListItem(row: ShiftRow): ShiftListItem {
   return {
     id: row.id,
@@ -87,6 +112,17 @@ function toShiftAssignmentResponse(row: ShiftAssignmentRow): ShiftAssignmentResp
     assignedById: row.assignedById,
     createdAt: row.createdAt.toISOString(),
     shift: row.shift,
+  };
+}
+
+function toShiftScheduleItem(row: ShiftScheduleRow, employeeName: string): ShiftScheduleItem {
+  return {
+    assignmentId: row.id,
+    workDate: row.workDate.toISOString().slice(0, 10),
+    employee: { id: row.employeeId, name: employeeName },
+    shift: row.shift,
+    assignedById: row.assignedById,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -124,6 +160,115 @@ export class ShiftsService {
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
+  }
+
+  async getSchedule(
+    query: QueryShiftScheduleDto,
+    actor: JwtPayload,
+  ): Promise<ShiftScheduleResponse> {
+    if (query.from > query.to) {
+      throw new BadRequestException('Ngày bắt đầu không được sau ngày kết thúc.');
+    }
+
+    try {
+      const authenticatedActor = await this.prisma.user.findUnique({
+        where: { id: actor.sub },
+        select: { id: true, role: true, isActive: true },
+      });
+
+      if (
+        !authenticatedActor ||
+        !authenticatedActor.isActive ||
+        authenticatedActor.role !== actor.role
+      ) {
+        throw new ForbiddenException('Tài khoản không có quyền xem lịch làm việc.');
+      }
+
+      let employeeIds: string[] | undefined;
+
+      if (authenticatedActor.role === UserRole.ADMIN) {
+        if (query.employeeId) employeeIds = [query.employeeId];
+      } else if (authenticatedActor.role === UserRole.MANAGER) {
+        if (query.employeeId === authenticatedActor.id) {
+          employeeIds = [authenticatedActor.id];
+        } else if (query.employeeId) {
+          const employee = await this.prisma.user.findUnique({
+            where: { id: query.employeeId },
+            select: { id: true, managerId: true },
+          });
+
+          if (!employee) {
+            throw new NotFoundException('Không tìm thấy nhân viên.');
+          }
+
+          if (employee.managerId !== authenticatedActor.id) {
+            throw new ForbiddenException('Quản lý chỉ được xem lịch của chính mình và nhân viên trực tiếp.');
+          }
+
+          employeeIds = [employee.id];
+        } else {
+          const directReports = await this.prisma.user.findMany({
+            where: { managerId: authenticatedActor.id },
+            select: { id: true },
+          });
+          employeeIds = [authenticatedActor.id, ...directReports.map((employee) => employee.id)];
+        }
+      } else if (authenticatedActor.role === UserRole.EMPLOYEE) {
+        if (query.employeeId && query.employeeId !== authenticatedActor.id) {
+          throw new ForbiddenException('Nhân viên chỉ được xem lịch của chính mình.');
+        }
+
+        employeeIds = [authenticatedActor.id];
+      } else {
+        throw new ForbiddenException('Tài khoản không có quyền xem lịch làm việc.');
+      }
+
+      const where: Prisma.ShiftAssignmentWhereInput = {
+        workDate: {
+          gte: toUtcDateOnly(query.from),
+          lte: toUtcDateOnly(query.to),
+        },
+      };
+      if (employeeIds) where.employeeId = { in: employeeIds };
+
+      const assignments = await this.prisma.shiftAssignment.findMany({
+        where,
+        select: SHIFT_SCHEDULE_SELECT,
+        orderBy: [
+          { workDate: 'asc' },
+          { shift: { startTime: 'asc' } },
+          { employeeId: 'asc' },
+          { id: 'asc' },
+        ],
+      });
+
+      const employeeIdsInResults = Array.from(new Set(assignments.map((row) => row.employeeId)));
+      const employees = employeeIdsInResults.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: employeeIdsInResults } },
+            select: { id: true, name: true },
+          })
+        : [];
+      const employeeNames = new Map(employees.map((employee) => [employee.id, employee.name]));
+      const items = assignments.map((row) =>
+        toShiftScheduleItem(row, employeeNames.get(row.employeeId) ?? ''),
+      );
+
+      items.sort(
+        (left, right) =>
+          left.workDate.localeCompare(right.workDate) ||
+          left.shift.startTime.localeCompare(right.shift.startTime) ||
+          left.employee.name.localeCompare(right.employee.name) ||
+          left.assignmentId.localeCompare(right.assignmentId),
+      );
+
+      return { from: query.from, to: query.to, items, total: items.length };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      this.logWriteError('truy vấn lịch làm việc', error);
+      throw error;
+    }
   }
 
   async create(dto: CreateShiftDto): Promise<ShiftListItem> {

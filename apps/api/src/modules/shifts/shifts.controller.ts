@@ -6,6 +6,7 @@ import { RolesGuard } from '../platform/guards/roles.guard';
 import { UserRole } from '../platform/types/identity.types';
 import type { JwtPayload } from '../platform/types/identity.types';
 import { QueryShiftsDto } from './dto/query-shifts.dto';
+import { QueryShiftScheduleDto } from './dto/query-shift-schedule.dto';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { CreateShiftAssignmentDto } from './dto/create-shift-assignment.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
@@ -13,6 +14,7 @@ import type {
   DeleteShiftResponse,
   PaginatedShifts,
   ShiftAssignmentResponse,
+  ShiftScheduleResponse,
   ShiftListItem,
 } from './shifts.types';
 import { ShiftsService } from './shifts.service';
@@ -22,6 +24,15 @@ import { ShiftsService } from './shifts.service';
 @Roles(UserRole.MANAGER, UserRole.ADMIN)
 export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
+
+  @Get('schedules')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE)
+  async schedule(
+    @Query() query: QueryShiftScheduleDto,
+    @CurrentUser() actor: JwtPayload,
+  ): Promise<ShiftScheduleResponse> {
+    return this.shiftsService.getSchedule(query, actor);
+  }
 
   @Get()
   async list(

@@ -13,6 +13,7 @@ const {
 const { Prisma } = require('@prisma/client');
 const { CreateShiftDto } = require('./dto/create-shift.dto');
 const { CreateShiftAssignmentDto } = require('./dto/create-shift-assignment.dto');
+const { QueryShiftScheduleDto } = require('./dto/query-shift-schedule.dto');
 const { UpdateShiftDto } = require('./dto/update-shift.dto');
 const { ShiftsService } = require('./shifts.service');
 const { UserRole } = require('../platform/types/identity.types');
@@ -494,5 +495,295 @@ test('maps the assignment unique constraint to a conflict', async () => {
   await assert.rejects(
     service.createAssignment(makeAssignmentDto(), managerActor),
     ConflictException,
+  );
+});
+
+function makeScheduleRow({
+  id,
+  employeeId,
+  workDate,
+  startTime = '09:00',
+  shiftActive = true,
+}) {
+  return {
+    id,
+    employeeId,
+    workDate: new Date(`${workDate}T00:00:00.000Z`),
+    assignedById: 'manager-1',
+    createdAt: timestamp,
+    shift: {
+      id: `shift-${id}`,
+      name: `Shift ${id}`,
+      startTime,
+      endTime: '17:00',
+      breakMinutes: 30,
+      isActive: shiftActive,
+    },
+  };
+}
+
+function makeScheduleService(overrides = {}) {
+  const actorUser = overrides.actorUser ?? {
+    id: 'manager-1', role: UserRole.MANAGER, isActive: true,
+  };
+  const targetUsers = overrides.targetUsers ?? [];
+  const directReports = overrides.directReports ?? [];
+  const assignments = overrides.assignments ?? [];
+  const employeeRecords = overrides.employeeRecords ?? [];
+  const calls = { assignmentQuery: null, userFindMany: [] };
+  const prisma = {
+    user: {
+      findUnique: async ({ where }) => {
+        if (where.id === actorUser.id) return actorUser;
+        return targetUsers.find((user) => user.id === where.id) ?? null;
+      },
+      findMany: async (query) => {
+        calls.userFindMany.push(query);
+        if (query.where.managerId) return directReports;
+        const requestedIds = query.where.id?.in ?? [];
+        return employeeRecords.filter((employee) => requestedIds.includes(employee.id));
+      },
+    },
+    shiftAssignment: {
+      findMany: async (query) => {
+        calls.assignmentQuery = query;
+        const { gte, lte } = query.where.workDate;
+        const scopedIds = query.where.employeeId?.in;
+        return assignments.filter((assignment) =>
+          assignment.workDate >= gte &&
+          assignment.workDate <= lte &&
+          (!scopedIds || scopedIds.includes(assignment.employeeId)),
+        );
+      },
+    },
+  };
+
+  const service = new ShiftsService(prisma);
+  if (overrides.queryError) {
+    service.logger.error = () => {};
+    prisma.shiftAssignment.findMany = async () => {
+      throw overrides.queryError;
+    };
+  }
+
+  return { service, calls };
+}
+
+function makeScheduleDto(overrides = {}) {
+  return plainToInstance(QueryShiftScheduleDto, {
+    from: '2026-10-01',
+    to: '2026-10-31',
+    ...overrides,
+  });
+}
+
+function scheduleActor(id, role) {
+  return { sub: id, email: `${id}@example.test`, role };
+}
+
+test('validates real ISO calendar dates and requires both range bounds', async () => {
+  const missingBounds = await validate(plainToInstance(QueryShiftScheduleDto, {}));
+  assert.ok(missingBounds.some((error) => error.property === 'from'));
+  assert.ok(missingBounds.some((error) => error.property === 'to'));
+
+  const impossibleDate = await validate(makeScheduleDto({ from: '2026-02-29' }));
+  assert.ok(impossibleDate.some((error) => error.property === 'from'));
+});
+
+test('queries a bounded date range and serializes workDate as a calendar date', async () => {
+  const row = makeScheduleRow({
+    id: 'assignment-1', employeeId: 'employee-1', workDate: '2026-10-03',
+  });
+  const { service, calls } = makeScheduleService({
+    actorUser: { id: 'admin-1', role: UserRole.ADMIN, isActive: true },
+    assignments: [row],
+    employeeRecords: [{ id: 'employee-1', name: 'Employee One' }],
+  });
+
+  const result = await service.getSchedule(
+    makeScheduleDto({ from: '2026-10-01', to: '2026-10-31' }),
+    scheduleActor('admin-1', UserRole.ADMIN),
+  );
+
+  assert.equal(calls.assignmentQuery.where.workDate.gte.toISOString(), '2026-10-01T00:00:00.000Z');
+  assert.equal(calls.assignmentQuery.where.workDate.lte.toISOString(), '2026-10-31T00:00:00.000Z');
+  assert.equal(result.from, '2026-10-01');
+  assert.equal(result.to, '2026-10-31');
+  assert.equal(result.items[0].workDate, '2026-10-03');
+  assert.equal(result.items[0].employee.name, 'Employee One');
+});
+
+test('rejects reversed date ranges before querying assignments', async () => {
+  const { service, calls } = makeScheduleService({
+    actorUser: { id: 'admin-1', role: UserRole.ADMIN, isActive: true },
+  });
+
+  await assert.rejects(
+    service.getSchedule(
+      makeScheduleDto({ from: '2026-10-02', to: '2026-10-01' }),
+      scheduleActor('admin-1', UserRole.ADMIN),
+    ),
+    BadRequestException,
+  );
+  assert.equal(calls.assignmentQuery, null);
+});
+
+test('returns an empty calendar without unnecessary user lookups', async () => {
+  const { service, calls } = makeScheduleService({
+    actorUser: { id: 'admin-1', role: UserRole.ADMIN, isActive: true },
+  });
+
+  const result = await service.getSchedule(
+    makeScheduleDto({ from: '2026-10-04', to: '2026-10-04' }),
+    scheduleActor('admin-1', UserRole.ADMIN),
+  );
+
+  assert.deepEqual(result, { from: '2026-10-04', to: '2026-10-04', items: [], total: 0 });
+  assert.equal(calls.userFindMany.length, 0);
+});
+
+test('ADMIN can view all employees or filter to one employee', async () => {
+  const assignments = [
+    makeScheduleRow({ id: 'a1', employeeId: 'employee-1', workDate: '2026-10-05' }),
+    makeScheduleRow({ id: 'a2', employeeId: 'employee-2', workDate: '2026-10-05' }),
+  ];
+  const options = {
+    actorUser: { id: 'admin-1', role: UserRole.ADMIN, isActive: true },
+    assignments,
+    employeeRecords: [
+      { id: 'employee-1', name: 'One' },
+      { id: 'employee-2', name: 'Two' },
+    ],
+  };
+  const allSchedules = makeScheduleService(options);
+  const all = await allSchedules.service.getSchedule(
+    makeScheduleDto(), scheduleActor('admin-1', UserRole.ADMIN),
+  );
+  assert.equal(all.total, 2);
+  assert.equal(allSchedules.calls.assignmentQuery.where.employeeId, undefined);
+
+  const oneSchedule = makeScheduleService(options);
+  const one = await oneSchedule.service.getSchedule(
+    makeScheduleDto({ employeeId: 'employee-2' }),
+    scheduleActor('admin-1', UserRole.ADMIN),
+  );
+  assert.equal(one.total, 1);
+  assert.deepEqual(oneSchedule.calls.assignmentQuery.where.employeeId, { in: ['employee-2'] });
+});
+
+test('MANAGER without a filter sees self and direct reports only', async () => {
+  const { service, calls } = makeScheduleService({
+    directReports: [{ id: 'employee-1' }, { id: 'employee-2' }],
+    assignments: [
+      makeScheduleRow({ id: 'self', employeeId: 'manager-1', workDate: '2026-10-03' }),
+      makeScheduleRow({ id: 'direct', employeeId: 'employee-1', workDate: '2026-10-04' }),
+      makeScheduleRow({ id: 'outside', employeeId: 'employee-outside', workDate: '2026-10-04' }),
+    ],
+    employeeRecords: [
+      { id: 'manager-1', name: 'Manager' },
+      { id: 'employee-1', name: 'Direct Report' },
+    ],
+  });
+
+  const result = await service.getSchedule(makeScheduleDto(), managerActor);
+
+  assert.deepEqual(calls.assignmentQuery.where.employeeId.in, [
+    'manager-1', 'employee-1', 'employee-2',
+  ]);
+  assert.deepEqual(result.items.map((item) => item.assignmentId), ['self', 'direct']);
+});
+
+test('MANAGER may filter self or a direct report, but not an out-of-scope user', async () => {
+  const directReport = makeScheduleService({
+    targetUsers: [{ id: 'employee-1', managerId: 'manager-1' }],
+  });
+  await directReport.service.getSchedule(
+    makeScheduleDto({ employeeId: 'employee-1' }), managerActor,
+  );
+  assert.deepEqual(directReport.calls.assignmentQuery.where.employeeId, { in: ['employee-1'] });
+
+  const outside = makeScheduleService({
+    targetUsers: [{ id: 'employee-outside', managerId: 'another-manager' }],
+  });
+  await assert.rejects(
+    outside.service.getSchedule(
+      makeScheduleDto({ employeeId: 'employee-outside' }), managerActor,
+    ),
+    ForbiddenException,
+  );
+  assert.equal(outside.calls.assignmentQuery, null);
+});
+
+test('EMPLOYEE is forced to their own schedule and cannot choose another employee', async () => {
+  const actor = scheduleActor('employee-1', UserRole.EMPLOYEE);
+  const ownSchedule = makeScheduleService({
+    actorUser: { id: 'employee-1', role: UserRole.EMPLOYEE, isActive: true },
+    assignments: [makeScheduleRow({
+      id: 'own', employeeId: 'employee-1', workDate: '2026-10-03',
+    })],
+    employeeRecords: [{ id: 'employee-1', name: 'Employee One' }],
+  });
+  const result = await ownSchedule.service.getSchedule(makeScheduleDto(), actor);
+  assert.deepEqual(ownSchedule.calls.assignmentQuery.where.employeeId, { in: ['employee-1'] });
+  assert.equal(result.items[0].assignmentId, 'own');
+
+  const otherSchedule = makeScheduleService({
+    actorUser: { id: 'employee-1', role: UserRole.EMPLOYEE, isActive: true },
+  });
+  await assert.rejects(
+    otherSchedule.service.getSchedule(
+      makeScheduleDto({ employeeId: 'employee-2' }), actor,
+    ),
+    ForbiddenException,
+  );
+  assert.equal(otherSchedule.calls.assignmentQuery, null);
+});
+
+test('keeps historical assignments for inactive shifts and sorts by date, time, then name', async () => {
+  const rows = [
+    makeScheduleRow({
+      id: 'z-later', employeeId: 'employee-z', workDate: '2026-10-03',
+      startTime: '10:00', shiftActive: false,
+    }),
+    makeScheduleRow({
+      id: 'z-first', employeeId: 'employee-z', workDate: '2026-10-02', startTime: '09:00',
+    }),
+    makeScheduleRow({
+      id: 'b-same-time', employeeId: 'employee-b', workDate: '2026-10-03', startTime: '09:00',
+    }),
+    makeScheduleRow({
+      id: 'a-same-time', employeeId: 'employee-a', workDate: '2026-10-03', startTime: '09:00',
+    }),
+  ];
+  const { service } = makeScheduleService({
+    actorUser: { id: 'admin-1', role: UserRole.ADMIN, isActive: true },
+    assignments: rows,
+    employeeRecords: [
+      { id: 'employee-z', name: 'Zoe' },
+      { id: 'employee-b', name: 'Bao' },
+      { id: 'employee-a', name: 'An' },
+    ],
+  });
+
+  const result = await service.getSchedule(
+    makeScheduleDto(), scheduleActor('admin-1', UserRole.ADMIN),
+  );
+
+  assert.deepEqual(result.items.map((item) => item.assignmentId), [
+    'z-first', 'a-same-time', 'b-same-time', 'z-later',
+  ]);
+  assert.equal(result.items[3].shift.isActive, false);
+});
+
+test('propagates Prisma schedule query failures after logging', async () => {
+  const queryError = new Error('database unavailable');
+  const { service } = makeScheduleService({
+    actorUser: { id: 'admin-1', role: UserRole.ADMIN, isActive: true },
+    queryError,
+  });
+
+  await assert.rejects(
+    service.getSchedule(makeScheduleDto(), scheduleActor('admin-1', UserRole.ADMIN)),
+    (error) => error === queryError,
   );
 });
