@@ -9,7 +9,6 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-
 @Module({
   imports: [
     // Hạ tầng dùng chung (global): DB + guard/decorator xác thực

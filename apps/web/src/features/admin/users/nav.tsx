@@ -20,3 +20,17 @@ export const usersNav: NavSection = {
   path: "/admin/users",
   items: [{ name: "Tài khoản", path: "/admin/users", icon: <UserCircleIcon />, pro: false }],
 };
+
+export const attendanceNav: NavSection = {
+  name: "Điểm danh",
+  icon: <span aria-hidden="true">📅</span>,
+  path: "/admin/attendance",
+  items: [
+    {
+      name: "Điểm danh",
+      path: "/admin/attendance",
+      icon: <span aria-hidden="true">📅</span>,
+      pro: false,
+    },
+  ],
+};
