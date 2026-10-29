@@ -7,7 +7,7 @@
     "start": "node dist/main",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "node --test --require ts-node/register src/modules/shifts/shifts.service.spec.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database';
+import { CreateShiftDto } from './dto/create-shift.dto';
 import { QueryShiftsDto } from './dto/query-shifts.dto';
+import { UpdateShiftDto } from './dto/update-shift.dto';
+import { calculateShiftDurationMinutes } from './shifts-time.util';
 import type { PaginatedShifts, ShiftListItem } from './shifts.types';
 
 const SHIFT_LIST_SELECT = {
@@ -32,6 +35,8 @@ function toShiftListItem(row: ShiftRow): ShiftListItem {
 
 @Injectable()
 export class ShiftsService {
+  private readonly logger = new Logger(ShiftsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: QueryShiftsDto): Promise<PaginatedShifts> {
@@ -62,5 +67,119 @@ export class ShiftsService {
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
+  }
+
+  async create(dto: CreateShiftDto): Promise<ShiftListItem> {
+    const name = dto.name.trim();
+    this.assertValidShift(name, dto.startTime, dto.endTime, dto.breakMinutes);
+
+    try {
+      const created = await this.prisma.shift.create({
+        data: {
+          name,
+          startTime: dto.startTime,
+          endTime: dto.endTime,
+          breakMinutes: dto.breakMinutes,
+          isActive: dto.isActive ?? true,
+        },
+        select: SHIFT_LIST_SELECT,
+      });
+
+      return toShiftListItem(created);
+    } catch (error) {
+      this.logWriteError('tạo ca làm việc', error);
+      throw error;
+    }
+  }
+
+  async update(id: string, dto: UpdateShiftDto): Promise<ShiftListItem> {
+    const hasChanges =
+      dto.name !== undefined ||
+      dto.startTime !== undefined ||
+      dto.endTime !== undefined ||
+      dto.breakMinutes !== undefined ||
+      dto.isActive !== undefined;
+
+    if (!hasChanges) {
+      throw new BadRequestException('Cần gửi ít nhất một trường để cập nhật.');
+    }
+
+    const current = await this.prisma.shift.findUnique({
+      where: { id },
+      select: SHIFT_LIST_SELECT,
+    });
+
+    if (!current) {
+      throw new NotFoundException('Không tìm thấy ca làm việc.');
+    }
+
+    const name = dto.name === undefined ? current.name : dto.name.trim();
+    const startTime = dto.startTime ?? current.startTime;
+    const endTime = dto.endTime ?? current.endTime;
+    const breakMinutes = dto.breakMinutes ?? current.breakMinutes;
+    this.assertValidShift(name, startTime, endTime, breakMinutes);
+
+    const data: Prisma.ShiftUpdateInput = {};
+    if (dto.name !== undefined) data.name = name;
+    if (dto.startTime !== undefined) data.startTime = startTime;
+    if (dto.endTime !== undefined) data.endTime = endTime;
+    if (dto.breakMinutes !== undefined) data.breakMinutes = breakMinutes;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+
+    try {
+      const updated = await this.prisma.shift.update({
+        where: { id },
+        data,
+        select: SHIFT_LIST_SELECT,
+      });
+
+      return toShiftListItem(updated);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException('Không tìm thấy ca làm việc.');
+      }
+
+      this.logWriteError('cập nhật ca làm việc', error);
+      throw error;
+    }
+  }
+
+  private assertValidShift(
+    name: string,
+    startTime: string,
+    endTime: string,
+    breakMinutes: number,
+  ): void {
+    if (name.length === 0) {
+      throw new BadRequestException('Tên ca không được để trống.');
+    }
+
+    if (name.length > 100) {
+      throw new BadRequestException('Tên ca tối đa 100 ký tự.');
+    }
+
+    const timeFormat = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+    if (!timeFormat.test(startTime) || !timeFormat.test(endTime)) {
+      throw new BadRequestException('Giờ ca phải đúng định dạng 24 giờ HH:mm.');
+    }
+
+    if (startTime === endTime) {
+      throw new BadRequestException('Giờ bắt đầu và kết thúc không được trùng nhau.');
+    }
+
+    if (!Number.isInteger(breakMinutes) || breakMinutes < 0) {
+      throw new BadRequestException('Thời gian nghỉ phải là số nguyên không âm.');
+    }
+
+    const duration = calculateShiftDurationMinutes(startTime, endTime);
+    if (breakMinutes >= duration) {
+      throw new BadRequestException('Thời gian nghỉ phải ngắn hơn tổng thời lượng ca.');
+    }
+  }
+
+  private logWriteError(action: string, error: unknown): void {
+    this.logger.error(
+      `Không thể ${action}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
