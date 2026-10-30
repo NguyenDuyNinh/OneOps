@@ -22,8 +22,6 @@ async function bootstrap() {
     }),
   );
 
-  app.setGlobalPrefix('api');
-
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
   logger.log(`🚀 OneOps API running on http://localhost:${port}`);

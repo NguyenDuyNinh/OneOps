@@ -76,14 +76,11 @@ async function request<T>(
         message = (await response.text()).slice(0, 300);
       }
     } catch {
-      // Giữ thông báo lỗi mặc định bên dưới.
+      // Không đọc được nội dung lỗi từ response.
     }
 
     if (response.status === 404) {
-      throw new Error(
-        `Không tìm thấy API: ${response.url}. ` +
-          "Kiểm tra endpoint hoặc route backend.",
-      );
+      throw new Error("Không thể tải dữ liệu ca làm việc.");
     }
 
     throw new Error(

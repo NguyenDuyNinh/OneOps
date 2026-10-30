@@ -8,33 +8,37 @@ import type {
 
 export function useShiftPermissions(access: ShiftAccessContext) {
   return useMemo(() => {
-    // Giai đoạn hiện tại: chưa kiểm tra quyền chi tiết.
-    // Mọi người dùng truy cập được các chức năng quản lý ca.
+    /**
+     * TODO:
+     * Thay các giá trị mặc định bằng kiểm tra quyền thực tế
+     * theo cấu trúc ShiftAccessContext của dự án.
+     *
+     * Lưu ý: Đây chỉ là quyền giao diện, không thay thế
+     * việc xác minh quyền tại API phía máy chủ.
+     */
     const hasPermission = (_permission: string): boolean => true;
 
-    function canViewEmployee(_employee: Employee): boolean {
-      return true;
-    }
+    const canViewEmployee = (_employee: Employee): boolean => true;
 
-    function canViewShift(_shift: Shift): boolean {
-      return true;
-    }
+    const canViewShift = (_shift: Shift): boolean => true;
 
     return {
       hasPermission,
       canViewEmployee,
       canViewShift,
 
-      canViewAllEmployees: true,
-      canViewDepartmentEmployees: true,
-      canViewSelf: true,
+      canViewAllEmployees: hasPermission("employees.view.all"),
+      canViewDepartmentEmployees: hasPermission(
+        "employees.view.department",
+      ),
+      canViewSelf: hasPermission("employees.view.self"),
 
-      canViewAllShifts: true,
-      canViewAssignedShifts: true,
+      canViewAllShifts: hasPermission("shifts.view.all"),
+      canViewAssignedShifts: hasPermission("shifts.view.assigned"),
 
-      canCreateShift: true,
-      canUpdateShift: true,
-      canDeleteShift: true,
+      canCreateShift: hasPermission("shifts.create"),
+      canUpdateShift: hasPermission("shifts.update"),
+      canDeleteShift: hasPermission("shifts.delete"),
     };
   }, [access]);
 }
