@@ -11,3 +11,10 @@ playwright-report/
 .env*
 !.env.example
 !**/.env.example
+graphify-out/
+/.gemini
+/.opencode
+Danh sách chức năng.xlsx
+Tài liệu đặc tả hệ thống.docx
+Tài liệu bổ sung.docx
+/.tmp_extracts

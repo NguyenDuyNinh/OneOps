@@ -70,5 +70,14 @@
     "model": "WorkReport",
     "databaseSchema": "work_reports",
     "schema": "apps/api/src/features/work-management/coordination/workspace-today/reports/prisma/reports.prisma"
+  },
+  {
+    "name": "notifications",
+    "feature": "work-management/coordination/notifications",
+    "route": "notifications",
+    "webRoute": "/work-management/notifications",
+    "model": "WorkNotification",
+    "databaseSchema": "work_notifications",
+    "schema": "apps/api/src/features/work-management/coordination/notifications/prisma/notifications.prisma"
   }
 ]

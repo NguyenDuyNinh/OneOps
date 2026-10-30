@@ -5,6 +5,7 @@ import { definition as calendar } from "@/features/work-management/coordination/
 import { definition as requests } from "@/features/work-management/coordination/tickets-approvals/index";
 import { definition as messages } from "@/features/work-management/coordination/internal-chat/index";
 import { definition as notes } from "@/features/work-management/coordination/knowledge-sop/index";
+import { definition as notifications } from "@/features/work-management/coordination/notifications/index";
 import { definition as reports } from "@/features/work-management/coordination/workspace-today/reports/index";
 export const modules = [
   dashboard,
@@ -14,6 +15,7 @@ export const modules = [
   requests,
   messages,
   notes,
+  notifications,
   reports,
 ];
 const pageAliases: Record<string, string> = {

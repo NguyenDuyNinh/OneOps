@@ -14,7 +14,7 @@ if (existsSync("apps/api/.env")) {
 }
 const production = process.argv.includes("--production");
 if (!production) {
-  const result = spawnSync("npm", ["run", "prepare:dev"], { stdio: "inherit" });
+  const result = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "prepare:dev"], { stdio: "inherit", shell: process.platform === "win32" });
   if (result.status !== 0) process.exit(result.status || 1);
 }
 const children = [];
@@ -25,7 +25,7 @@ function stop(code = 0) {
   for (const child of children) {
     try {
       if (process.platform !== "win32") process.kill(-child.pid, "SIGTERM");
-      else child.kill("SIGTERM");
+      else spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
     } catch (error) {
       if (error.code !== "ESRCH") throw error;
     }
@@ -51,9 +51,10 @@ for (const [workspace, port] of [
       `http://127.0.0.1:${process.env.API_PORT || 4000}`,
   };
   if (workspace === "@oneops/web") delete childEnv.DATABASE_URL;
-  const child = spawn("npm", args, {
+  const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", args, {
     detached: process.platform !== "win32",
     stdio: "inherit",
+    shell: process.platform === "win32",
     env: childEnv,
   });
   children.push(child);

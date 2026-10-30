@@ -34,6 +34,13 @@ export function Icon({
         <path d="M12 7v5l3 2" />
       </>
     ),
+    bell: (
+      <>
+        <path d="M10 18a3 3 0 0 0-3 3h6a3 3 0 0 0-3-3" />
+        <path d="M19 10v-4a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v4" />
+        <path d="M12 19v3M12 14l3-3" />
+      </>
+    ),
     check: <path d="m5 12 4 4L19 6" />,
     download: (
       <>

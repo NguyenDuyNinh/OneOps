@@ -227,18 +227,22 @@ for (const module of modules) {
   }
   const backend = `apps/api/src/features/${module.feature}`,
     frontend = `apps/web/src/features/${module.feature}`;
-  for (const file of [
+  const artifacts = [
     `${backend}/${module.name}.controller.ts`,
     `${backend}/${module.name}.service.ts`,
     `${backend}/${module.name}.repository.ts`,
     `${backend}/${module.name}.module.ts`,
     `${backend}/dto/${module.name}.dto.ts`,
     module.schema,
-    `${frontend}/components/page.tsx`,
-    `${frontend}/constants.ts`,
-    `${frontend}/types.ts`,
-    `${frontend}/api/client.ts`,
-  ])
+  ];
+  if (module.frontend !== false)
+    artifacts.push(
+      `${frontend}/components/page.tsx`,
+      `${frontend}/constants.ts`,
+      `${frontend}/types.ts`,
+      `${frontend}/api/client.ts`,
+    );
+  for (const file of artifacts)
     if (!(await exists(file))) failures.push(`Missing owned artifact: ${file}`);
   const schema = await fs.readFile(path.join(root, module.schema), "utf8");
   if (!schema.includes(`@@schema("${module.databaseSchema}")`))

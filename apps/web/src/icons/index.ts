@@ -6,6 +6,7 @@ import nav6 from "./nav-6.svg";
 import nav7 from "./nav-7.svg";
 import nav8 from "./nav-8.svg";
 import nav9 from "./nav-9.svg";
+import nav11 from "./nav-11.svg";
 import switchApp from "./switch-app.svg";
 import vi from "./vi.svg";
 export const navigationIcons: Record<number, { src: string }> = {
@@ -17,5 +18,6 @@ export const navigationIcons: Record<number, { src: string }> = {
   7: nav7,
   8: nav8,
   9: nav9,
+  11: nav11,
 };
 export { switchApp, vi };

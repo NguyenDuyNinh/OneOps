@@ -5,9 +5,11 @@ import { ProjectSpacesModule } from "./projects/project-spaces/index.js";
 import { CalendarModule } from "./coordination/workspace-today/calendar/index.js";
 import { TicketsApprovalsModule } from "./coordination/tickets-approvals/index.js";
 import { InternalChatModule } from "./coordination/internal-chat/index.js";
+import { NotificationsModule } from "./coordination/notifications/index.js";
 import { KnowledgeSopModule } from "./coordination/knowledge-sop/index.js";
 import { ReportsModule } from "./coordination/workspace-today/reports/index.js";
 import { WorkspaceInsightsModule } from "./work-management.insights.module.js";
+
 @Module({
   imports: [
     WorkspaceTodayModule,
@@ -16,6 +18,7 @@ import { WorkspaceInsightsModule } from "./work-management.insights.module.js";
     CalendarModule,
     TicketsApprovalsModule,
     InternalChatModule,
+    NotificationsModule,
     KnowledgeSopModule,
     ReportsModule,
     WorkspaceInsightsModule,

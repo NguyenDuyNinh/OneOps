@@ -10,6 +10,7 @@ import { Icon } from "@/core/ui/primitives/icon";
 import { Button } from "@/core/ui/primitives/button";
 import { BookOpen, Palette } from "lucide-react";
 import { AppearanceControls } from "@/core/ui/primitives/preferences";
+import { NotificationBell } from "@/features/work-management/coordination/notifications";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -134,6 +135,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           )}
         </div>
         <div className="account-actions">
+          <NotificationBell />
           <img
             className="flag"
             src={vi.src}

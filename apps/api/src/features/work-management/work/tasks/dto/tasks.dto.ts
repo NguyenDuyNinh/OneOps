@@ -39,6 +39,7 @@ export const fieldsSchema = z
     progress: z.number().int().min(0).max(100).optional(),
     startDate: z.union([z.iso.date(), z.literal("")]).optional(),
     tags: z.string().trim().max(1000).optional(),
+    nguoiKiemTra: z.string().trim().max(150).optional(),
     comments: z
       .array(
         z
