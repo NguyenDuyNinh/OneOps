@@ -1,0 +1,36 @@
+{
+  "tenant-system": {
+    "organization": ["company-profile", "work-policies"],
+    "access-control": ["tenant-auth", "roles-permissions", "accounts"],
+    "automation-hub": ["external-integrations", "workflow-rules", "ai-copilot"],
+    "checklog": []
+  },
+  "work-management": {
+    "work": ["tasks", "task-workflow", "task-comments", "kanban"],
+    "coordination": [
+      "notifications",
+      "internal-chat",
+      "workspace-today",
+      "tickets-approvals",
+      "knowledge-sop"
+    ],
+    "projects": ["project-spaces", "milestones-qa", "timesheets"]
+  },
+  "hr-management": {
+    "attendance": [
+      "daily-checkin",
+      "workforce-board",
+      "checkin-explanations",
+      "shifts-schedules",
+      "attendance-reports"
+    ],
+    "leaves": ["leave-requests", "leave-approvals"],
+    "employees": ["employee-directory", "resource-capacity"],
+    "organization": ["departments-teams", "positions-grades"]
+  },
+  "crm": {
+    "presales": ["leads-customers", "discovery-briefs"],
+    "commercial": ["quotations-sow", "contracts"],
+    "customer-success": ["receivables", "customer-portal", "after-sales"]
+  }
+}

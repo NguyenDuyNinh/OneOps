@@ -1,0 +1,74 @@
+[
+  {
+    "name": "workspace-today",
+    "feature": "work-management/coordination/workspace-today",
+    "route": "home",
+    "webRoute": "/",
+    "model": "WorkspaceWidget",
+    "databaseSchema": "work_dashboard",
+    "schema": "apps/api/src/features/work-management/coordination/workspace-today/prisma/workspace-today.prisma"
+  },
+  {
+    "name": "tasks",
+    "feature": "work-management/work/tasks",
+    "route": "tasks",
+    "webRoute": "/work-management/tasks",
+    "model": "WorkTask",
+    "databaseSchema": "work_tasks",
+    "schema": "apps/api/src/features/work-management/work/tasks/prisma/task.prisma"
+  },
+  {
+    "name": "project-spaces",
+    "feature": "work-management/projects/project-spaces",
+    "route": "projects",
+    "webRoute": "/work-management/projects",
+    "model": "WorkProject",
+    "databaseSchema": "work_projects",
+    "schema": "apps/api/src/features/work-management/projects/project-spaces/prisma/project-space.prisma"
+  },
+  {
+    "name": "calendar",
+    "feature": "work-management/coordination/workspace-today/calendar",
+    "route": "calendar",
+    "webRoute": "/work-management/calendar",
+    "model": "WorkEvent",
+    "databaseSchema": "work_calendar",
+    "schema": "apps/api/src/features/work-management/coordination/workspace-today/calendar/prisma/calendar.prisma"
+  },
+  {
+    "name": "tickets-approvals",
+    "feature": "work-management/coordination/tickets-approvals",
+    "route": "requests",
+    "webRoute": "/work-management/tickets-approvals",
+    "model": "WorkRequest",
+    "databaseSchema": "work_requests",
+    "schema": "apps/api/src/features/work-management/coordination/tickets-approvals/prisma/tickets-approvals.prisma"
+  },
+  {
+    "name": "internal-chat",
+    "feature": "work-management/coordination/internal-chat",
+    "route": "messages",
+    "webRoute": "/work-management/internal-chat",
+    "model": "WorkThread",
+    "databaseSchema": "work_messages",
+    "schema": "apps/api/src/features/work-management/coordination/internal-chat/prisma/internal-chat.prisma"
+  },
+  {
+    "name": "knowledge-sop",
+    "feature": "work-management/coordination/knowledge-sop",
+    "route": "notes",
+    "webRoute": "/work-management/knowledge-sop",
+    "model": "WorkNote",
+    "databaseSchema": "work_notes",
+    "schema": "apps/api/src/features/work-management/coordination/knowledge-sop/prisma/knowledge-sop.prisma"
+  },
+  {
+    "name": "reports",
+    "feature": "work-management/coordination/workspace-today/reports",
+    "route": "reports",
+    "webRoute": "/work-management/reports",
+    "model": "WorkReport",
+    "databaseSchema": "work_reports",
+    "schema": "apps/api/src/features/work-management/coordination/workspace-today/reports/prisma/reports.prisma"
+  }
+]

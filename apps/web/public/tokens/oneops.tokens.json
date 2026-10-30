@@ -1,0 +1,1430 @@
+{
+  "name": "OneOps Design Tokens",
+  "version": "1.1.0",
+  "description": "Bộ token ba lớp cho hệ thống OneOps, giữ nhận diện cam và xanh đậm.",
+  "primitive": {
+    "brand-50": {
+      "value": "#fff8f1",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 50",
+      "type": "color"
+    },
+    "brand-100": {
+      "value": "#ffecd6",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 100",
+      "type": "color"
+    },
+    "brand-200": {
+      "value": "#ffd3a8",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 200",
+      "type": "color"
+    },
+    "brand-300": {
+      "value": "#ffb572",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 300",
+      "type": "color"
+    },
+    "brand-400": {
+      "value": "#ff9142",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 400",
+      "type": "color"
+    },
+    "brand-500": {
+      "value": "#f06000",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 500",
+      "type": "color"
+    },
+    "brand-600": {
+      "value": "#de5500",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 600",
+      "type": "color"
+    },
+    "brand-700": {
+      "value": "#bd4600",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 700",
+      "type": "color"
+    },
+    "brand-800": {
+      "value": "#963a08",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 800",
+      "type": "color"
+    },
+    "brand-900": {
+      "value": "#79320c",
+      "category": "color",
+      "description": "Cam thương hiệu cấp 900",
+      "type": "color"
+    },
+    "neutral-0": {
+      "value": "#ffffff",
+      "category": "color",
+      "description": "Thang trung tính 0",
+      "type": "color"
+    },
+    "neutral-50": {
+      "value": "#f6f8fb",
+      "category": "color",
+      "description": "Thang trung tính 50",
+      "type": "color"
+    },
+    "neutral-100": {
+      "value": "#f0f3f7",
+      "category": "color",
+      "description": "Thang trung tính 100",
+      "type": "color"
+    },
+    "neutral-200": {
+      "value": "#dfe5ee",
+      "category": "color",
+      "description": "Thang trung tính 200",
+      "type": "color"
+    },
+    "neutral-300": {
+      "value": "#b8c4d3",
+      "category": "color",
+      "description": "Thang trung tính 300",
+      "type": "color"
+    },
+    "neutral-400": {
+      "value": "#8fa3bd",
+      "category": "color",
+      "description": "Thang trung tính 400",
+      "type": "color"
+    },
+    "neutral-500": {
+      "value": "#6d7d92",
+      "category": "color",
+      "description": "Thang trung tính 500",
+      "type": "color"
+    },
+    "neutral-600": {
+      "value": "#52647d",
+      "category": "color",
+      "description": "Thang trung tính 600",
+      "type": "color"
+    },
+    "neutral-700": {
+      "value": "#2a3a51",
+      "category": "color",
+      "description": "Thang trung tính 700",
+      "type": "color"
+    },
+    "neutral-800": {
+      "value": "#1d2b40",
+      "category": "color",
+      "description": "Thang trung tính 800",
+      "type": "color"
+    },
+    "neutral-850": {
+      "value": "#1b293d",
+      "category": "color",
+      "description": "Thang trung tính 850",
+      "type": "color"
+    },
+    "neutral-900": {
+      "value": "#141f30",
+      "category": "color",
+      "description": "Thang trung tính 900",
+      "type": "color"
+    },
+    "neutral-950": {
+      "value": "#0d1522",
+      "category": "color",
+      "description": "Thang trung tính 950",
+      "type": "color"
+    },
+    "neutral-ink": {
+      "value": "#00204d",
+      "category": "color",
+      "description": "Thang trung tính ink",
+      "type": "color"
+    },
+    "neutral-light": {
+      "value": "#e8eef8",
+      "category": "color",
+      "description": "Thang trung tính light",
+      "type": "color"
+    },
+    "neutral-muted-dark": {
+      "value": "#abbcd2",
+      "category": "color",
+      "description": "Thang trung tính muted-dark",
+      "type": "color"
+    },
+    "space-0": {
+      "value": "0px",
+      "category": "spacing",
+      "description": "Khoảng cách 0px",
+      "type": "dimension"
+    },
+    "space-1": {
+      "value": "4px",
+      "category": "spacing",
+      "description": "Khoảng cách 4px",
+      "type": "dimension"
+    },
+    "space-2": {
+      "value": "8px",
+      "category": "spacing",
+      "description": "Khoảng cách 8px",
+      "type": "dimension"
+    },
+    "space-3": {
+      "value": "12px",
+      "category": "spacing",
+      "description": "Khoảng cách 12px",
+      "type": "dimension"
+    },
+    "space-4": {
+      "value": "16px",
+      "category": "spacing",
+      "description": "Khoảng cách 16px",
+      "type": "dimension"
+    },
+    "space-5": {
+      "value": "20px",
+      "category": "spacing",
+      "description": "Khoảng cách 20px",
+      "type": "dimension"
+    },
+    "space-6": {
+      "value": "24px",
+      "category": "spacing",
+      "description": "Khoảng cách 24px",
+      "type": "dimension"
+    },
+    "space-8": {
+      "value": "32px",
+      "category": "spacing",
+      "description": "Khoảng cách 32px",
+      "type": "dimension"
+    },
+    "space-10": {
+      "value": "40px",
+      "category": "spacing",
+      "description": "Khoảng cách 40px",
+      "type": "dimension"
+    },
+    "space-12": {
+      "value": "48px",
+      "category": "spacing",
+      "description": "Khoảng cách 48px",
+      "type": "dimension"
+    },
+    "space-16": {
+      "value": "64px",
+      "category": "spacing",
+      "description": "Khoảng cách 64px",
+      "type": "dimension"
+    },
+    "space-20": {
+      "value": "80px",
+      "category": "spacing",
+      "description": "Khoảng cách 80px",
+      "type": "dimension"
+    },
+    "space-24": {
+      "value": "96px",
+      "category": "spacing",
+      "description": "Khoảng cách 96px",
+      "type": "dimension"
+    },
+    "space-half": {
+      "value": "2px",
+      "category": "spacing",
+      "description": "Bước khoảng cách nhỏ 2px",
+      "type": "dimension"
+    },
+    "radius-none": {
+      "value": "0px",
+      "category": "radius",
+      "description": "Bo góc none",
+      "type": "dimension"
+    },
+    "radius-xs": {
+      "value": "4px",
+      "category": "radius",
+      "description": "Bo góc xs",
+      "type": "dimension"
+    },
+    "radius-sm": {
+      "value": "6px",
+      "category": "radius",
+      "description": "Bo góc sm",
+      "type": "dimension"
+    },
+    "radius-md": {
+      "value": "8px",
+      "category": "radius",
+      "description": "Bo góc md",
+      "type": "dimension"
+    },
+    "radius-lg": {
+      "value": "12px",
+      "category": "radius",
+      "description": "Bo góc lg",
+      "type": "dimension"
+    },
+    "radius-xl": {
+      "value": "14px",
+      "category": "radius",
+      "description": "Bo góc xl",
+      "type": "dimension"
+    },
+    "radius-2xl": {
+      "value": "16px",
+      "category": "radius",
+      "description": "Bo góc 2xl",
+      "type": "dimension"
+    },
+    "radius-pill": {
+      "value": "9999px",
+      "category": "radius",
+      "description": "Bo góc pill",
+      "type": "dimension"
+    },
+    "icon-xs": {
+      "value": "12px",
+      "category": "sizing",
+      "description": "Kích thước icon xs",
+      "type": "dimension"
+    },
+    "icon-sm": {
+      "value": "16px",
+      "category": "sizing",
+      "description": "Kích thước icon sm",
+      "type": "dimension"
+    },
+    "icon-md": {
+      "value": "20px",
+      "category": "sizing",
+      "description": "Kích thước icon md",
+      "type": "dimension"
+    },
+    "icon-lg": {
+      "value": "24px",
+      "category": "sizing",
+      "description": "Kích thước icon lg",
+      "type": "dimension"
+    },
+    "icon-xl": {
+      "value": "32px",
+      "category": "sizing",
+      "description": "Kích thước icon xl",
+      "type": "dimension"
+    },
+    "breakpoint-sm": {
+      "value": "640px",
+      "category": "breakpoint",
+      "description": "Mốc responsive sm",
+      "type": "dimension"
+    },
+    "breakpoint-md": {
+      "value": "768px",
+      "category": "breakpoint",
+      "description": "Mốc responsive md",
+      "type": "dimension"
+    },
+    "breakpoint-lg": {
+      "value": "1024px",
+      "category": "breakpoint",
+      "description": "Mốc responsive lg",
+      "type": "dimension"
+    },
+    "breakpoint-xl": {
+      "value": "1280px",
+      "category": "breakpoint",
+      "description": "Mốc responsive xl",
+      "type": "dimension"
+    },
+    "breakpoint-2xl": {
+      "value": "1536px",
+      "category": "breakpoint",
+      "description": "Mốc responsive 2xl",
+      "type": "dimension"
+    },
+    "weight-regular": {
+      "value": 400,
+      "category": "typography",
+      "description": "Độ đậm regular",
+      "type": "number"
+    },
+    "weight-medium": {
+      "value": 500,
+      "category": "typography",
+      "description": "Độ đậm medium",
+      "type": "number"
+    },
+    "weight-semibold": {
+      "value": 600,
+      "category": "typography",
+      "description": "Độ đậm semibold",
+      "type": "number"
+    },
+    "weight-bold": {
+      "value": 700,
+      "category": "typography",
+      "description": "Độ đậm bold",
+      "type": "number"
+    },
+    "type-display-size": {
+      "value": "40px",
+      "category": "typography",
+      "description": "Cỡ chữ display",
+      "type": "dimension"
+    },
+    "type-display-line": {
+      "value": "48px",
+      "category": "typography",
+      "description": "Chiều cao dòng display",
+      "type": "dimension"
+    },
+    "type-display-weight": {
+      "value": "{weight-semibold}",
+      "category": "typography",
+      "description": "Độ đậm vai trò display",
+      "type": "number"
+    },
+    "type-heading-size": {
+      "value": "32px",
+      "category": "typography",
+      "description": "Cỡ chữ heading",
+      "type": "dimension"
+    },
+    "type-heading-line": {
+      "value": "40px",
+      "category": "typography",
+      "description": "Chiều cao dòng heading",
+      "type": "dimension"
+    },
+    "type-heading-weight": {
+      "value": "{weight-semibold}",
+      "category": "typography",
+      "description": "Độ đậm vai trò heading",
+      "type": "number"
+    },
+    "type-title-size": {
+      "value": "24px",
+      "category": "typography",
+      "description": "Cỡ chữ title",
+      "type": "dimension"
+    },
+    "type-title-line": {
+      "value": "32px",
+      "category": "typography",
+      "description": "Chiều cao dòng title",
+      "type": "dimension"
+    },
+    "type-title-weight": {
+      "value": "{weight-semibold}",
+      "category": "typography",
+      "description": "Độ đậm vai trò title",
+      "type": "number"
+    },
+    "type-section-size": {
+      "value": "18px",
+      "category": "typography",
+      "description": "Cỡ chữ section",
+      "type": "dimension"
+    },
+    "type-section-line": {
+      "value": "28px",
+      "category": "typography",
+      "description": "Chiều cao dòng section",
+      "type": "dimension"
+    },
+    "type-section-weight": {
+      "value": "{weight-semibold}",
+      "category": "typography",
+      "description": "Độ đậm vai trò section",
+      "type": "number"
+    },
+    "type-body-size": {
+      "value": "14px",
+      "category": "typography",
+      "description": "Cỡ chữ body",
+      "type": "dimension"
+    },
+    "type-body-line": {
+      "value": "24px",
+      "category": "typography",
+      "description": "Chiều cao dòng body",
+      "type": "dimension"
+    },
+    "type-body-weight": {
+      "value": "{weight-regular}",
+      "category": "typography",
+      "description": "Độ đậm vai trò body",
+      "type": "number"
+    },
+    "type-label-size": {
+      "value": "14px",
+      "category": "typography",
+      "description": "Cỡ chữ label",
+      "type": "dimension"
+    },
+    "type-label-line": {
+      "value": "20px",
+      "category": "typography",
+      "description": "Chiều cao dòng label",
+      "type": "dimension"
+    },
+    "type-label-weight": {
+      "value": "{weight-medium}",
+      "category": "typography",
+      "description": "Độ đậm vai trò label",
+      "type": "number"
+    },
+    "type-caption-size": {
+      "value": "12px",
+      "category": "typography",
+      "description": "Cỡ chữ caption",
+      "type": "dimension"
+    },
+    "type-caption-line": {
+      "value": "20px",
+      "category": "typography",
+      "description": "Chiều cao dòng caption",
+      "type": "dimension"
+    },
+    "type-caption-weight": {
+      "value": "{weight-regular}",
+      "category": "typography",
+      "description": "Độ đậm vai trò caption",
+      "type": "number"
+    },
+    "type-micro-size": {
+      "value": "10px",
+      "category": "typography",
+      "description": "Cỡ chữ micro",
+      "type": "dimension"
+    },
+    "type-micro-line": {
+      "value": "16px",
+      "category": "typography",
+      "description": "Chiều cao dòng micro",
+      "type": "dimension"
+    },
+    "type-micro-weight": {
+      "value": "{weight-medium}",
+      "category": "typography",
+      "description": "Độ đậm vai trò micro",
+      "type": "number"
+    },
+    "type-family-sans": {
+      "value": "Inter, Arial, sans-serif",
+      "category": "typography",
+      "description": "Font nội dung tiếng Việt",
+      "type": "fontFamily"
+    },
+    "type-family-mono": {
+      "value": "ui-monospace, SFMono-Regular, Menlo, monospace",
+      "category": "typography",
+      "description": "Font mã và số đối chiếu",
+      "type": "fontFamily"
+    },
+    "elevation-none": {
+      "value": "none",
+      "category": "elevation",
+      "description": "Bóng đổ none",
+      "type": "shadow"
+    },
+    "elevation-xs": {
+      "value": "0 1px 2px #00204d08",
+      "category": "elevation",
+      "description": "Bóng đổ xs",
+      "type": "shadow"
+    },
+    "elevation-panel": {
+      "value": "0 2px 8px #00204d04",
+      "category": "elevation",
+      "description": "Bóng đổ panel",
+      "type": "shadow"
+    },
+    "elevation-floating": {
+      "value": "0 8px 32px #00204d12",
+      "category": "elevation",
+      "description": "Bóng đổ floating",
+      "type": "shadow"
+    },
+    "elevation-modal": {
+      "value": "0 24px 80px #00204d30",
+      "category": "elevation",
+      "description": "Bóng đổ modal",
+      "type": "shadow"
+    },
+    "duration-instant": {
+      "value": "0ms",
+      "category": "motion",
+      "description": "Thời gian instant",
+      "type": "duration"
+    },
+    "duration-fast": {
+      "value": "120ms",
+      "category": "motion",
+      "description": "Thời gian fast",
+      "type": "duration"
+    },
+    "duration-normal": {
+      "value": "160ms",
+      "category": "motion",
+      "description": "Thời gian normal",
+      "type": "duration"
+    },
+    "duration-slow": {
+      "value": "240ms",
+      "category": "motion",
+      "description": "Thời gian slow",
+      "type": "duration"
+    },
+    "duration-skeleton": {
+      "value": "1800ms",
+      "category": "motion",
+      "description": "Thời gian skeleton",
+      "type": "duration"
+    },
+    "ease-standard": {
+      "value": "cubic-bezier(0.2, 0, 0, 1)",
+      "category": "motion",
+      "description": "Đường chuyển động standard",
+      "type": "cubicBezier"
+    },
+    "ease-enter": {
+      "value": "cubic-bezier(0, 0, 0.2, 1)",
+      "category": "motion",
+      "description": "Đường chuyển động enter",
+      "type": "cubicBezier"
+    },
+    "ease-exit": {
+      "value": "cubic-bezier(0.4, 0, 1, 1)",
+      "category": "motion",
+      "description": "Đường chuyển động exit",
+      "type": "cubicBezier"
+    },
+    "z-base": {
+      "value": 0,
+      "category": "layer",
+      "description": "Lớp base",
+      "type": "number"
+    },
+    "z-sticky": {
+      "value": 10,
+      "category": "layer",
+      "description": "Lớp sticky",
+      "type": "number"
+    },
+    "z-sidebar": {
+      "value": 30,
+      "category": "layer",
+      "description": "Lớp sidebar",
+      "type": "number"
+    },
+    "z-header": {
+      "value": 40,
+      "category": "layer",
+      "description": "Lớp header",
+      "type": "number"
+    },
+    "z-overlay": {
+      "value": 100,
+      "category": "layer",
+      "description": "Lớp overlay",
+      "type": "number"
+    },
+    "z-dialog": {
+      "value": 101,
+      "category": "layer",
+      "description": "Lớp dialog",
+      "type": "number"
+    },
+    "z-popover": {
+      "value": 110,
+      "category": "layer",
+      "description": "Lớp popover",
+      "type": "number"
+    },
+    "z-tooltip": {
+      "value": 120,
+      "category": "layer",
+      "description": "Lớp tooltip",
+      "type": "number"
+    },
+    "z-toast": {
+      "value": 1000,
+      "category": "layer",
+      "description": "Lớp toast",
+      "type": "number"
+    }
+  },
+  "semantic": {
+    "light": {
+      "surface": {
+        "value": "{neutral-0}",
+        "category": "color",
+        "description": "Nền bề mặt chính",
+        "type": "color"
+      },
+      "canvas": {
+        "value": "{neutral-50}",
+        "category": "color",
+        "description": "Nền ứng dụng",
+        "type": "color"
+      },
+      "subtle": {
+        "value": "{neutral-100}",
+        "category": "color",
+        "description": "Nền khu vực phụ",
+        "type": "color"
+      },
+      "elevated": {
+        "value": "{neutral-0}",
+        "category": "color",
+        "description": "Vai trò elevated",
+        "type": "color"
+      },
+      "foreground": {
+        "value": "{neutral-ink}",
+        "category": "color",
+        "description": "Nội dung chính",
+        "type": "color"
+      },
+      "foreground-muted": {
+        "value": "{neutral-600}",
+        "category": "color",
+        "description": "Vai trò foreground-muted",
+        "type": "color"
+      },
+      "foreground-subtle": {
+        "value": "{neutral-500}",
+        "category": "color",
+        "description": "Vai trò foreground-subtle",
+        "type": "color"
+      },
+      "action": {
+        "value": "{brand-700}",
+        "category": "color",
+        "description": "Hành động chính",
+        "type": "color"
+      },
+      "action-hover": {
+        "value": "{brand-800}",
+        "category": "color",
+        "description": "Vai trò action-hover",
+        "type": "color"
+      },
+      "action-foreground": {
+        "value": "{neutral-0}",
+        "category": "color",
+        "description": "Chữ trên hành động chính",
+        "type": "color"
+      },
+      "accent": {
+        "value": "#fff8ef",
+        "category": "color",
+        "description": "Vai trò accent",
+        "type": "color"
+      },
+      "accent-foreground": {
+        "value": "#a23c00",
+        "category": "color",
+        "description": "Vai trò accent-foreground",
+        "type": "color"
+      },
+      "line": {
+        "value": "{neutral-200}",
+        "category": "color",
+        "description": "Viền mặc định",
+        "type": "color"
+      },
+      "line-strong": {
+        "value": "{neutral-300}",
+        "category": "color",
+        "description": "Vai trò line-strong",
+        "type": "color"
+      },
+      "ring": {
+        "value": "#e56516",
+        "category": "color",
+        "description": "Vòng focus bàn phím",
+        "type": "color"
+      },
+      "success": {
+        "value": "#16734c",
+        "category": "color",
+        "description": "Vai trò success",
+        "type": "color"
+      },
+      "success-soft": {
+        "value": "#edf9f1",
+        "category": "color",
+        "description": "Vai trò success-soft",
+        "type": "color"
+      },
+      "warning": {
+        "value": "#926000",
+        "category": "color",
+        "description": "Vai trò warning",
+        "type": "color"
+      },
+      "warning-soft": {
+        "value": "#fff8df",
+        "category": "color",
+        "description": "Vai trò warning-soft",
+        "type": "color"
+      },
+      "danger": {
+        "value": "#bc3535",
+        "category": "color",
+        "description": "Vai trò danger",
+        "type": "color"
+      },
+      "danger-soft": {
+        "value": "#fff1f1",
+        "category": "color",
+        "description": "Vai trò danger-soft",
+        "type": "color"
+      },
+      "info": {
+        "value": "#1b61a8",
+        "category": "color",
+        "description": "Vai trò info",
+        "type": "color"
+      },
+      "info-soft": {
+        "value": "#eef6ff",
+        "category": "color",
+        "description": "Vai trò info-soft",
+        "type": "color"
+      },
+      "shadow": {
+        "value": "0 8px 32px #00204d12",
+        "category": "elevation",
+        "description": "Vai trò shadow",
+        "type": "shadow"
+      },
+      "action-pressed": {
+        "value": "#963a08",
+        "category": "color",
+        "description": "Trạng thái action-pressed",
+        "type": "color"
+      },
+      "action-disabled": {
+        "value": "#e5eaf1",
+        "category": "color",
+        "description": "Trạng thái action-disabled",
+        "type": "color"
+      },
+      "action-disabled-foreground": {
+        "value": "#6d7d92",
+        "category": "color",
+        "description": "Trạng thái action-disabled-foreground",
+        "type": "color"
+      },
+      "surface-hover": {
+        "value": "#f6f8fb",
+        "category": "color",
+        "description": "Trạng thái surface-hover",
+        "type": "color"
+      },
+      "surface-selected": {
+        "value": "#fff8ef",
+        "category": "color",
+        "description": "Trạng thái surface-selected",
+        "type": "color"
+      },
+      "text-link": {
+        "value": "#1b61a8",
+        "category": "color",
+        "description": "Trạng thái text-link",
+        "type": "color"
+      },
+      "border-danger": {
+        "value": "{danger}",
+        "category": "color",
+        "description": "Trạng thái border-danger",
+        "type": "color"
+      },
+      "overlay": {
+        "value": "#00204d59",
+        "category": "color",
+        "description": "Trạng thái overlay",
+        "type": "color"
+      },
+      "focus-offset": {
+        "value": "{surface}",
+        "category": "color",
+        "description": "Trạng thái focus-offset",
+        "type": "color"
+      }
+    },
+    "dark": {
+      "surface": {
+        "value": "{neutral-900}",
+        "category": "color",
+        "description": "Nền bề mặt chính",
+        "type": "color"
+      },
+      "canvas": {
+        "value": "{neutral-950}",
+        "category": "color",
+        "description": "Nền ứng dụng",
+        "type": "color"
+      },
+      "subtle": {
+        "value": "{neutral-800}",
+        "category": "color",
+        "description": "Nền khu vực phụ",
+        "type": "color"
+      },
+      "elevated": {
+        "value": "{neutral-850}",
+        "category": "color",
+        "description": "Vai trò elevated",
+        "type": "color"
+      },
+      "foreground": {
+        "value": "{neutral-light}",
+        "category": "color",
+        "description": "Nội dung chính",
+        "type": "color"
+      },
+      "foreground-muted": {
+        "value": "{neutral-muted-dark}",
+        "category": "color",
+        "description": "Vai trò foreground-muted",
+        "type": "color"
+      },
+      "foreground-subtle": {
+        "value": "{neutral-400}",
+        "category": "color",
+        "description": "Vai trò foreground-subtle",
+        "type": "color"
+      },
+      "action": {
+        "value": "#ffad6b",
+        "category": "color",
+        "description": "Hành động chính",
+        "type": "color"
+      },
+      "action-hover": {
+        "value": "#ffc396",
+        "category": "color",
+        "description": "Vai trò action-hover",
+        "type": "color"
+      },
+      "action-foreground": {
+        "value": "#39200b",
+        "category": "color",
+        "description": "Chữ trên hành động chính",
+        "type": "color"
+      },
+      "accent": {
+        "value": "#35291f",
+        "category": "color",
+        "description": "Vai trò accent",
+        "type": "color"
+      },
+      "accent-foreground": {
+        "value": "#ffc28e",
+        "category": "color",
+        "description": "Vai trò accent-foreground",
+        "type": "color"
+      },
+      "line": {
+        "value": "{neutral-700}",
+        "category": "color",
+        "description": "Viền mặc định",
+        "type": "color"
+      },
+      "line-strong": {
+        "value": "#52647e",
+        "category": "color",
+        "description": "Vai trò line-strong",
+        "type": "color"
+      },
+      "ring": {
+        "value": "#ffad6b",
+        "category": "color",
+        "description": "Vòng focus bàn phím",
+        "type": "color"
+      },
+      "success": {
+        "value": "#7edbb0",
+        "category": "color",
+        "description": "Vai trò success",
+        "type": "color"
+      },
+      "success-soft": {
+        "value": "#16382e",
+        "category": "color",
+        "description": "Vai trò success-soft",
+        "type": "color"
+      },
+      "warning": {
+        "value": "#f6cf76",
+        "category": "color",
+        "description": "Vai trò warning",
+        "type": "color"
+      },
+      "warning-soft": {
+        "value": "#362e1b",
+        "category": "color",
+        "description": "Vai trò warning-soft",
+        "type": "color"
+      },
+      "danger": {
+        "value": "#ffabab",
+        "category": "color",
+        "description": "Vai trò danger",
+        "type": "color"
+      },
+      "danger-soft": {
+        "value": "#3d252d",
+        "category": "color",
+        "description": "Vai trò danger-soft",
+        "type": "color"
+      },
+      "info": {
+        "value": "#94c9ff",
+        "category": "color",
+        "description": "Vai trò info",
+        "type": "color"
+      },
+      "info-soft": {
+        "value": "#1b314c",
+        "category": "color",
+        "description": "Vai trò info-soft",
+        "type": "color"
+      },
+      "shadow": {
+        "value": "0 12px 36px #00000040",
+        "category": "elevation",
+        "description": "Vai trò shadow",
+        "type": "shadow"
+      },
+      "action-pressed": {
+        "value": "#ffd0aa",
+        "category": "color",
+        "description": "Trạng thái action-pressed",
+        "type": "color"
+      },
+      "action-disabled": {
+        "value": "#27364b",
+        "category": "color",
+        "description": "Trạng thái action-disabled",
+        "type": "color"
+      },
+      "action-disabled-foreground": {
+        "value": "#8fa3bd",
+        "category": "color",
+        "description": "Trạng thái action-disabled-foreground",
+        "type": "color"
+      },
+      "surface-hover": {
+        "value": "#1d2b40",
+        "category": "color",
+        "description": "Trạng thái surface-hover",
+        "type": "color"
+      },
+      "surface-selected": {
+        "value": "#35291f",
+        "category": "color",
+        "description": "Trạng thái surface-selected",
+        "type": "color"
+      },
+      "text-link": {
+        "value": "#94c9ff",
+        "category": "color",
+        "description": "Trạng thái text-link",
+        "type": "color"
+      },
+      "border-danger": {
+        "value": "{danger}",
+        "category": "color",
+        "description": "Trạng thái border-danger",
+        "type": "color"
+      },
+      "overlay": {
+        "value": "#00000080",
+        "category": "color",
+        "description": "Trạng thái overlay",
+        "type": "color"
+      },
+      "focus-offset": {
+        "value": "{surface}",
+        "category": "color",
+        "description": "Trạng thái focus-offset",
+        "type": "color"
+      }
+    }
+  },
+  "component": {
+    "radius-control": {
+      "value": "{radius-md}",
+      "category": "component",
+      "description": "Ánh xạ thành phần radius-control",
+      "type": "dimension"
+    },
+    "radius-panel": {
+      "value": "{radius-xl}",
+      "category": "component",
+      "description": "Ánh xạ thành phần radius-panel",
+      "type": "dimension"
+    },
+    "button-height": {
+      "value": "{control-height}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-height",
+      "type": "dimension"
+    },
+    "button-radius": {
+      "value": "{radius-control}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-radius",
+      "type": "dimension"
+    },
+    "button-bg": {
+      "value": "{action}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-bg",
+      "type": "color"
+    },
+    "button-hover-bg": {
+      "value": "{action-hover}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-hover-bg",
+      "type": "color"
+    },
+    "button-text": {
+      "value": "{action-foreground}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-text",
+      "type": "color"
+    },
+    "button-disabled-bg": {
+      "value": "{action-disabled}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-disabled-bg",
+      "type": "color"
+    },
+    "button-disabled-text": {
+      "value": "{action-disabled-foreground}",
+      "category": "component",
+      "description": "Ánh xạ thành phần button-disabled-text",
+      "type": "color"
+    },
+    "input-height": {
+      "value": "{control-height}",
+      "category": "component",
+      "description": "Ánh xạ thành phần input-height",
+      "type": "dimension"
+    },
+    "input-radius": {
+      "value": "{radius-control}",
+      "category": "component",
+      "description": "Ánh xạ thành phần input-radius",
+      "type": "dimension"
+    },
+    "input-bg": {
+      "value": "{surface}",
+      "category": "component",
+      "description": "Ánh xạ thành phần input-bg",
+      "type": "color"
+    },
+    "input-border": {
+      "value": "{line-strong}",
+      "category": "component",
+      "description": "Ánh xạ thành phần input-border",
+      "type": "color"
+    },
+    "input-focus-ring": {
+      "value": "{ring}",
+      "category": "component",
+      "description": "Ánh xạ thành phần input-focus-ring",
+      "type": "color"
+    },
+    "input-error-border": {
+      "value": "{danger}",
+      "category": "component",
+      "description": "Ánh xạ thành phần input-error-border",
+      "type": "color"
+    },
+    "card-bg": {
+      "value": "{surface}",
+      "category": "component",
+      "description": "Ánh xạ thành phần card-bg",
+      "type": "color"
+    },
+    "card-border": {
+      "value": "{line}",
+      "category": "component",
+      "description": "Ánh xạ thành phần card-border",
+      "type": "color"
+    },
+    "card-radius": {
+      "value": "{radius-panel}",
+      "category": "component",
+      "description": "Ánh xạ thành phần card-radius",
+      "type": "dimension"
+    },
+    "card-padding": {
+      "value": "{panel-space}",
+      "category": "component",
+      "description": "Ánh xạ thành phần card-padding",
+      "type": "dimension"
+    },
+    "table-row-height": {
+      "value": "{row-height}",
+      "category": "component",
+      "description": "Ánh xạ thành phần table-row-height",
+      "type": "dimension"
+    },
+    "table-header-bg": {
+      "value": "{canvas}",
+      "category": "component",
+      "description": "Ánh xạ thành phần table-header-bg",
+      "type": "color"
+    },
+    "table-selected-bg": {
+      "value": "{surface-selected}",
+      "category": "component",
+      "description": "Ánh xạ thành phần table-selected-bg",
+      "type": "color"
+    },
+    "table-border": {
+      "value": "{line}",
+      "category": "component",
+      "description": "Ánh xạ thành phần table-border",
+      "type": "color"
+    },
+    "dialog-bg": {
+      "value": "{surface}",
+      "category": "component",
+      "description": "Ánh xạ thành phần dialog-bg",
+      "type": "color"
+    },
+    "dialog-radius": {
+      "value": "{radius-panel}",
+      "category": "component",
+      "description": "Ánh xạ thành phần dialog-radius",
+      "type": "dimension"
+    },
+    "dialog-overlay": {
+      "value": "{overlay}",
+      "category": "component",
+      "description": "Ánh xạ thành phần dialog-overlay",
+      "type": "color"
+    },
+    "focus-width": {
+      "value": "2px",
+      "category": "component",
+      "description": "Ánh xạ thành phần focus-width",
+      "type": "dimension"
+    },
+    "focus-gap": {
+      "value": "2px",
+      "category": "component",
+      "description": "Ánh xạ thành phần focus-gap",
+      "type": "dimension"
+    },
+    "header-height": {
+      "value": "56px",
+      "category": "component",
+      "description": "Ánh xạ thành phần header-height",
+      "type": "dimension"
+    },
+    "sidebar-rail-width": {
+      "value": "68px",
+      "category": "component",
+      "description": "Ánh xạ thành phần sidebar-rail-width",
+      "type": "dimension"
+    },
+    "sidebar-panel-width": {
+      "value": "270px",
+      "category": "component",
+      "description": "Ánh xạ thành phần sidebar-panel-width",
+      "type": "dimension"
+    },
+    "content-max-width": {
+      "value": "1720px",
+      "category": "component",
+      "description": "Ánh xạ thành phần content-max-width",
+      "type": "dimension"
+    },
+    "primary": {
+      "value": "{action}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "primary-hover": {
+      "value": "{action-hover}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "primary-soft": {
+      "value": "{accent}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "text": {
+      "value": "{foreground}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "label": {
+      "value": "{foreground}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "muted": {
+      "value": "{foreground-muted}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "placeholder": {
+      "value": "{foreground-subtle}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "border": {
+      "value": "{line}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    },
+    "border-strong": {
+      "value": "{line-strong}",
+      "category": "compatibility",
+      "description": "Alias tương thích giao diện hiện tại",
+      "type": "color"
+    }
+  },
+  "density": {
+    "comfortable": {
+      "control-height": {
+        "value": "40px",
+        "category": "density",
+        "description": "Mật độ comfortable — control-height",
+        "type": "dimension"
+      },
+      "row-height": {
+        "value": "56px",
+        "category": "density",
+        "description": "Mật độ comfortable — row-height",
+        "type": "dimension"
+      },
+      "panel-space": {
+        "value": "24px",
+        "category": "density",
+        "description": "Mật độ comfortable — panel-space",
+        "type": "dimension"
+      }
+    },
+    "compact": {
+      "control-height": {
+        "value": "34px",
+        "category": "density",
+        "description": "Mật độ compact — control-height",
+        "type": "dimension"
+      },
+      "row-height": {
+        "value": "44px",
+        "category": "density",
+        "description": "Mật độ compact — row-height",
+        "type": "dimension"
+      },
+      "panel-space": {
+        "value": "16px",
+        "category": "density",
+        "description": "Mật độ compact — panel-space",
+        "type": "dimension"
+      }
+    }
+  },
+  "tailwind": {
+    "color-background": "{canvas}",
+    "color-surface": "{surface}",
+    "color-elevated": "{elevated}",
+    "color-muted": "{subtle}",
+    "color-foreground": "{foreground}",
+    "color-muted-foreground": "{foreground-muted}",
+    "color-subtle-foreground": "{foreground-subtle}",
+    "color-primary": "{action}",
+    "color-primary-hover": "{action-hover}",
+    "color-primary-foreground": "{action-foreground}",
+    "color-accent": "{accent}",
+    "color-accent-foreground": "{accent-foreground}",
+    "color-border": "{line}",
+    "color-input": "{line-strong}",
+    "color-ring": "{ring}",
+    "color-success": "{success}",
+    "color-success-soft": "{success-soft}",
+    "color-warning": "{warning}",
+    "color-warning-soft": "{warning-soft}",
+    "color-destructive": "{danger}",
+    "color-destructive-soft": "{danger-soft}",
+    "color-info": "{info}",
+    "color-info-soft": "{info-soft}",
+    "color-brand-50": "{brand-50}",
+    "color-brand-100": "{brand-100}",
+    "color-brand-200": "{brand-200}",
+    "color-brand-300": "{brand-300}",
+    "color-brand-400": "{brand-400}",
+    "color-brand-500": "{brand-500}",
+    "color-brand-600": "{brand-600}",
+    "color-brand-700": "{brand-700}",
+    "color-brand-800": "{brand-800}",
+    "color-brand-900": "{brand-900}",
+    "color-neutral-0": "{neutral-0}",
+    "color-neutral-50": "{neutral-50}",
+    "color-neutral-100": "{neutral-100}",
+    "color-neutral-200": "{neutral-200}",
+    "color-neutral-300": "{neutral-300}",
+    "color-neutral-400": "{neutral-400}",
+    "color-neutral-500": "{neutral-500}",
+    "color-neutral-600": "{neutral-600}",
+    "color-neutral-700": "{neutral-700}",
+    "color-neutral-800": "{neutral-800}",
+    "color-neutral-850": "{neutral-850}",
+    "color-neutral-900": "{neutral-900}",
+    "color-neutral-950": "{neutral-950}",
+    "color-neutral-ink": "{neutral-ink}",
+    "color-neutral-light": "{neutral-light}",
+    "color-neutral-muted-dark": "{neutral-muted-dark}",
+    "spacing": "{space-1}",
+    "font-sans": "var(--font-inter), Arial, sans-serif",
+    "font-mono": "{type-family-mono}",
+    "radius-control": "{radius-md}",
+    "radius-panel": "{radius-xl}",
+    "shadow-panel": "0 2px 8px #00204d04, 0 0 0 1px var(--line)",
+    "shadow-floating": "{shadow}",
+    "animate-enter": "enter var(--duration-normal) var(--ease-enter)",
+    "animate-skeleton": "pulse var(--duration-skeleton) ease-in-out infinite",
+    "spacing-icon-xs": "{icon-xs}",
+    "spacing-icon-sm": "{icon-sm}",
+    "spacing-icon-md": "{icon-md}",
+    "spacing-icon-lg": "{icon-lg}",
+    "spacing-icon-xl": "{icon-xl}",
+    "transition-duration-fast": "{duration-fast}",
+    "transition-duration-normal": "{duration-normal}",
+    "transition-duration-slow": "{duration-slow}",
+    "ease-standard": "{ease-standard}",
+    "ease-enter": "{ease-enter}",
+    "ease-exit": "{ease-exit}"
+  }
+}

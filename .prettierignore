@@ -1,0 +1,8 @@
+**/node_modules/**
+**/.next/**
+**/dist/**
+**/generated/**
+apps/web/src/core/ui/styles/tokens.css
+apps/web/src/core/ui/styles/token-theme.css
+apps/web/src/core/ui/design-system/schema/token-data.json
+apps/web/public/tokens/

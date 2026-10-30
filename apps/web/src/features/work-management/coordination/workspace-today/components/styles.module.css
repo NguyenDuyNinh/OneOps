@@ -1,0 +1,82 @@
+.root {
+  min-width: 0;
+}
+.card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card button {
+  text-align: left;
+}
+.card h3 {
+  font-size: 14px;
+  margin: 10px 0;
+  line-height: 1.5;
+}
+.meta {
+  color: var(--foreground-muted);
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.metric {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 20px;
+}
+.metric strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 12px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+.header p {
+  color: var(--foreground-muted);
+  margin: 8px 0 0;
+}
+.quick {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.quick a {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--surface);
+  color: var(--action);
+}
+@media (max-width: 800px) {
+  .header h1 {
+    font-size: 20px;
+  }
+}
