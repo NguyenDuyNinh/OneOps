@@ -217,6 +217,8 @@ const namespaces = new Set(),
   routes = new Set(),
   models = new Set();
 for (const module of modules) {
+  if (module.kind !== undefined && module.kind !== "backend-only")
+    failures.push(`${module.name}: unsupported implementation kind`);
   for (const [set, value, label] of [
     [namespaces, module.databaseSchema, "namespace"],
     [routes, module.route, "API route"],
@@ -227,22 +229,34 @@ for (const module of modules) {
   }
   const backend = `apps/api/src/features/${module.feature}`,
     frontend = `apps/web/src/features/${module.feature}`;
-  for (const file of [
-    `${backend}/${module.name}.controller.ts`,
+  const required = [
     `${backend}/${module.name}.service.ts`,
     `${backend}/${module.name}.repository.ts`,
     `${backend}/${module.name}.module.ts`,
     `${backend}/dto/${module.name}.dto.ts`,
     module.schema,
-    `${frontend}/components/page.tsx`,
-    `${frontend}/constants.ts`,
-    `${frontend}/types.ts`,
-    `${frontend}/api/client.ts`,
-  ])
+  ];
+  if (module.kind === "backend-only") {
+    required.push(
+      `${backend}/index.ts`,
+      `${backend}/${module.name}.controller.ts`,
+    );
+  } else {
+    required.push(
+      `${backend}/${module.name}.controller.ts`,
+      `${frontend}/components/page.tsx`,
+      `${frontend}/constants.ts`,
+      `${frontend}/types.ts`,
+      `${frontend}/api/client.ts`,
+    );
+  }
+  for (const file of required)
     if (!(await exists(file))) failures.push(`Missing owned artifact: ${file}`);
   const schema = await fs.readFile(path.join(root, module.schema), "utf8");
   if (!schema.includes(`@@schema("${module.databaseSchema}")`))
     failures.push(`${module.name}: namespace mismatch`);
+  if (module.table && !schema.includes(`@@map("${module.table}")`))
+    failures.push(`${module.name}: table mapping mismatch`);
   const repo = await fs.readFile(
     path.join(root, backend, `${module.name}.repository.ts`),
     "utf8",

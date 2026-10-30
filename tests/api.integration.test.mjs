@@ -55,7 +55,7 @@ after(async () => {
 });
 beforeEach(cleanDatabase);
 test("eight implementations own separate CRUD APIs, codes, records and namespaces", async () => {
-  for (const module of modules) {
+  for (const module of modules.filter((module) => !module.kind)) {
     const created = await request(
       "/" + module.route,
       "POST",
@@ -69,6 +69,77 @@ test("eight implementations own separate CRUD APIs, codes, records and namespace
   }
   const task = (await request("/tasks")).body.items[0];
   assert.equal((await request("/projects/" + task.id)).status, 404);
+});
+test("Kanban groups, filters and sorts tasks while persisting derived alerts", async () => {
+  const late = (
+    await request(
+      "/tasks",
+      "POST",
+      input("tasks", { code: "KB-LATE", date: "2020-01-01" }),
+    )
+  ).body;
+  await request(
+    "/tasks",
+    "POST",
+    input("tasks", {
+      code: "KB-FUTURE",
+      name: "Việc tương lai",
+      date: "2030-01-01",
+    }),
+  );
+  const completed = (
+    await request(
+      "/tasks",
+      "POST",
+      input("tasks", {
+        code: "KB-DONE",
+        status: "Hoàn thành",
+        date: "2020-01-01",
+      }),
+    )
+  ).body;
+  const board = await request("/kanban");
+  assert.equal(board.status, 200);
+  assert.equal(board.body.summary.total, 3);
+  assert.equal(board.body.summary.overdue, 1);
+  assert.equal(
+    board.body.lanes.find((lane) => lane.status === "Cần làm").count,
+    2,
+  );
+  assert.equal(
+    board.body.lanes.find((lane) => lane.status === "Cần làm").items[0].id,
+    late.id,
+  );
+  assert.equal(
+    board.body.lanes.find((lane) => lane.status === "Hoàn thành").items[0]
+      .deadlineState,
+    "none",
+  );
+  const filtered = await request("/kanban?deadlineState=overdue");
+  assert.equal(filtered.body.total, 1);
+  assert.equal(filtered.body.summary.total, 1);
+  assert.equal(
+    (await request("/kanban?deadlineFrom=2030-01-01&deadlineTo=2020-01-01"))
+      .status,
+    400,
+  );
+  const { WorkManagementKanbanService } = await import(
+    "../apps/api/dist/features/work-management/work-management.kanban.service.js"
+  );
+  const { KanbanService } = await import(
+    "../apps/api/dist/features/work-management/work/kanban/index.js"
+  );
+  await app.get(WorkManagementKanbanService).reconcileAlerts();
+  const alerts = await app.get(KanbanService).listActiveAlerts();
+  assert.deepEqual(alerts.map((alert) => alert.taskId), [late.id]);
+  assert.ok(!alerts.some((alert) => alert.taskId === completed.id));
+  const updated = await request(`/tasks/${late.id}`, "PATCH", {
+    version: late.version,
+    status: "Hoàn thành",
+  });
+  assert.equal(updated.status, 200);
+  await app.get(WorkManagementKanbanService).reconcileAlerts();
+  assert.deepEqual(await app.get(KanbanService).listActiveAlerts(), []);
 });
 test("duplicate codes conflict; PATCH keeps omitted fields and stale writes are rejected", async () => {
   const created = (

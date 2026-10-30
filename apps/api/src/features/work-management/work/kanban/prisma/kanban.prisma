@@ -1,0 +1,13 @@
+model KanbanAlert {
+  id String @id @default(uuid()) @db.Uuid
+  taskId String @unique @db.Uuid
+  deadlineSnapshot DateTime @db.Timestamptz(3)
+  taskVersion Int
+  state String @db.VarChar(20)
+  changedAt DateTime @default(now())
+  checkedAt DateTime @default(now())
+
+  @@index([state, checkedAt])
+  @@map("alerts")
+  @@schema("work_kanban")
+}

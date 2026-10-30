@@ -8,6 +8,7 @@ import { InternalChatModule } from "./coordination/internal-chat/index.js";
 import { KnowledgeSopModule } from "./coordination/knowledge-sop/index.js";
 import { ReportsModule } from "./coordination/workspace-today/reports/index.js";
 import { WorkspaceInsightsModule } from "./work-management.insights.module.js";
+import { WorkManagementKanbanModule } from "./work-management.kanban.module.js";
 @Module({
   imports: [
     WorkspaceTodayModule,
@@ -19,6 +20,7 @@ import { WorkspaceInsightsModule } from "./work-management.insights.module.js";
     KnowledgeSopModule,
     ReportsModule,
     WorkspaceInsightsModule,
+    WorkManagementKanbanModule,
   ],
 })
 export class WorkManagementModule {}

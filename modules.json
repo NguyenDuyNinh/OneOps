@@ -70,5 +70,15 @@
     "model": "WorkReport",
     "databaseSchema": "work_reports",
     "schema": "apps/api/src/features/work-management/coordination/workspace-today/reports/prisma/reports.prisma"
+  },
+  {
+    "name": "kanban",
+    "kind": "backend-only",
+    "feature": "work-management/work/kanban",
+    "route": "kanban",
+    "model": "KanbanAlert",
+    "table": "alerts",
+    "databaseSchema": "work_kanban",
+    "schema": "apps/api/src/features/work-management/work/kanban/prisma/kanban.prisma"
   }
 ]

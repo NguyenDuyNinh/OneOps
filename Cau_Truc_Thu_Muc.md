@@ -8,7 +8,7 @@ Cập nhật theo mã nguồn thực tế và các nhánh đã bổ sung. Có **
 - Cây rút gọn phần lặp trong từng chức năng; nhánh Tasks được mở chi tiết làm ví dụ thực tế. Không liệt kê nội dung dependency, cache và đầu ra biên dịch.
 
 ```text
-OneOps3/
+OneOps/
 ├── apps/                                                                            # Các ứng dụng chạy của hệ thống
 │   ├── api/                                                                         # Backend NestJS
 │   │   ├── src/                                                                     # Mã nguồn backend

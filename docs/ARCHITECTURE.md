@@ -46,7 +46,9 @@ Optimistic version, strict Zod, chuẩn hóa code, transaction/list pagination v
 
 ## Kiểm tra
 
-Boundary check xác minh 4 nhóm, 39 thư mục đối xứng, artifact/model/delegate cho 8 implementation hiện hữu; chặn import nội bộ trái phép và tái tạo cấu trúc cũ. Unused check đọc import graph của source và entrypoint database package. Build chạy cả hai kiểm tra. Empty folders tái lập qua structure:prepare, không cần file .gitkeep/source giả.
+Boundary check xác minh 4 nhóm, 39 thư mục đối xứng, artifact/model/delegate cho 8 implementation FE+BE hiện hữu và implementation backend-only của Kanban; chặn import nội bộ trái phép và tái tạo cấu trúc cũ. Unused check đọc import graph của source và entrypoint database package. Build chạy cả hai kiểm tra. Empty folders tái lập qua structure:prepare, không cần file .gitkeep/source giả.
+
+Kanban có model `KanbanAlert` trong namespace `work_kanban` để ghi nhận trạng thái cảnh báo đã tính. Controller của Kanban được đăng ký tại composition `work-management.kanban.module.ts`, nơi gọi public `TasksService` để dựng board. API `GET /api/v1/kanban` trả cột, thẻ, bộ lọc và thanh tổng quan; scheduler đối chiếu cảnh báo mỗi phút. Task và deadline vẫn do Tasks sở hữu. Deadline hiện chỉ có độ chính xác theo ngày trong model Tasks; phân quyền theo danh tính, thông báo đa kênh và cập nhật realtime cần các feature nền tương ứng trước khi hoàn thiện đặc tả SCR-01/SCR-02.
 
 Giữ UI/UX, catalog/design tokens. Chưa bổ sung authentication, RBAC, event bus, realtime, attendance/leaves, CRM hoặc các nghiệp vụ được mô tả trong file mẫu nhưng chưa có trong mã nguồn.
 
