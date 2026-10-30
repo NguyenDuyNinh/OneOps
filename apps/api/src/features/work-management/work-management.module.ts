@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { WorkspaceTodayModule } from "./coordination/workspace-today/index.js";
+import { TaskCommentsModule } from "./work/task-comments/index.js";
 import { TasksModule } from "./work/tasks/index.js";
 import { ProjectSpacesModule } from "./projects/project-spaces/index.js";
 import { CalendarModule } from "./coordination/workspace-today/calendar/index.js";
@@ -11,6 +12,7 @@ import { WorkspaceInsightsModule } from "./work-management.insights.module.js";
 @Module({
   imports: [
     WorkspaceTodayModule,
+    TaskCommentsModule,
     TasksModule,
     ProjectSpacesModule,
     CalendarModule,

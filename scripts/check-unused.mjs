@@ -73,7 +73,7 @@ for (const file of files) {
 }
 const roots = files.filter(
   (f) =>
-    f.includes("/apps/web/src/app/") &&
+    f.replaceAll("\\", "/").includes("/apps/web/src/app/") &&
     /(?:page|route|layout|not-found)\.tsx?$/.test(f),
 );
 roots.push(
@@ -97,3 +97,4 @@ if (unreachable.length) {
   console.log(
     `All ${files.length} source files are reachable from application entrypoints.`,
   );
+

@@ -14,7 +14,10 @@ if (existsSync("apps/api/.env")) {
 }
 const production = process.argv.includes("--production");
 if (!production) {
-  const result = spawnSync("npm", ["run", "prepare:dev"], { stdio: "inherit" });
+  const result = spawnSync("npm", ["run", "prepare:dev"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
   if (result.status !== 0) process.exit(result.status || 1);
 }
 const children = [];
@@ -55,6 +58,7 @@ for (const [workspace, port] of [
     detached: process.platform !== "win32",
     stdio: "inherit",
     env: childEnv,
+    shell: process.platform === "win32",
   });
   children.push(child);
   child.on("exit", (code) => {

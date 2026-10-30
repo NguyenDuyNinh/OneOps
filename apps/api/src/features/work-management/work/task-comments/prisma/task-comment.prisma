@@ -1,0 +1,25 @@
+model TaskComment {
+  id               String    @id @default(uuid())
+  taskId           String    @map("task_id")
+  authorId         String    @default("") @map("author_id")
+  authorName       String    @default("Người dùng") @map("author_name")
+  authorRole       String    @default("STAFF") @map("author_role")
+  authorAvatar     String?   @map("author_avatar")
+  content          String
+  type             String    @default("COMMENT")
+  mentions         String[]  @default([])
+  links            String[]  @default([])
+  attachments      Json?
+  proposedDeadline DateTime? @map("proposed_deadline")
+  proposalStatus   String?   @map("proposal_status")
+  reviewedById     String?   @map("reviewed_by_id")
+  rejectionReason  String?   @map("rejection_reason")
+  isSystemLog      Boolean   @default(false) @map("is_system_log")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([taskId])
+  @@map("task_comments")
+  @@schema("work_tasks")
+}
+
