@@ -7,7 +7,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { TasksModule } from './modules/tasks/tasks.module';
-import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ShiftsModule } from './modules/shifts/shifts.module';
@@ -25,7 +24,6 @@ import { ShiftsModule } from './modules/shifts/shifts.module';
     UsersModule,
     AttendanceModule,  // [Dev 1]
     TasksModule,       // [Dev 2]
-    TaskCommentsModule, // [Dev 2 Subtask: Task Comments]
     ChatModule,        // [Dev 3]
     NotificationsModule, // [Dev 3]
     ShiftsModule,

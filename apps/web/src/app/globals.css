@@ -4,7 +4,7 @@
 
 @theme {
   --font-*: initial;
-  --font-sans: var(--font-be-vietnam), "Be Vietnam Pro", sans-serif;
+  --font-sans: "Segoe UI", "Noto Sans", Arial, sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;

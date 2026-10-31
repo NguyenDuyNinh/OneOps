@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel --filter @oneops/api --filter web dev",
+    "dev": "pnpm --parallel --filter './apps/*' dev",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter @oneops/api dev",
-    "build": "pnpm --filter @oneops/api --filter web build",
+    "build": "pnpm --filter './apps/*' build",
     "lint": "pnpm lint:structure",
     "typecheck": "pnpm --recursive typecheck",
     "test": "pnpm --recursive test",

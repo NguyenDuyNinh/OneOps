@@ -1,0 +1,3 @@
+# Copy file này thành .env và điền giá trị thực
+# KHÔNG commit file .env
+NODE_ENV=development

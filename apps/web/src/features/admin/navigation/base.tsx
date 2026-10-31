@@ -23,6 +23,20 @@ export const navFirst: NavSection[] = [
   },
 ];
 
+export const attendanceNav: NavSection = {
+  name: "Điểm danh",
+  icon: <span aria-hidden="true">📅</span>,
+  path: "/admin/attendance",
+  items: [
+    {
+      name: "Điểm danh",
+      path: "/admin/attendance",
+      icon: <span aria-hidden="true">📅</span>,
+      pro: false,
+    },
+  ],
+};
+
 export const navLast: NavSection[] = [
   {
     name: "Auth",

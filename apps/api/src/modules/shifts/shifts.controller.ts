@@ -37,7 +37,6 @@ export class ShiftsController {
   @Get()
   async list(
     @Query() query: QueryShiftsDto,
-    @CurrentUser() _user: JwtPayload,
   ): Promise<PaginatedShifts> {
     return this.shiftsService.list(query);
   }
