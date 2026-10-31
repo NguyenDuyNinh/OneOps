@@ -1,53 +1,83 @@
 # Kiến trúc OneOps theo file cấu trúc
 
-Dự án dùng Next.js 16, NestJS, PostgreSQL và Prisma, tổ chức theo bốn miền: tenant-system, work-management, hr-management, crm. File `Cau Truc Thu Muc (1).md` tại root là chuẩn cấu trúc. Xem FOLDER-MAPPING.md để biết vị trí từng chức năng cũ và phần còn trống.
+Dự án dùng **Next.js 16**, **NestJS 11**, **PostgreSQL 16+** và **Prisma 7.10.1**, tổ chức theo bốn miền nghiệp vụ chính: `tenant-system`, `work-management`, `hr-management`, `crm`. File `Cau Truc Thu Muc (1).md` tại root là chuẩn cấu trúc thư mục. Xem `FOLDER-MAPPING.md` để biết vị trí từng chức năng và phần còn trống.
 
 ```text
 packages/database/
-  prisma/schema/base.prisma      # chỉ datasource/generator
-  prisma/schema/features         # symlink tới model gốc dưới API features
-  prisma/migrations/
-  prisma/seed/                   # trống, chưa có seed
-  generated/                     # tự sinh, không sửa
-  index.ts                       # PrismaClient, Prisma, model types
+  prisma/schema/base.prisma      # DataSource PostgreSQL, generator và danh sách multi-schema namespaces
+  prisma/schema/features         # Symlink/Junction tới model gốc dưới API features
+  prisma/migrations/             # Lịch sử các bản migration đã áp dụng
+  generated/                     # Prisma Client sinh tự động, không sửa trực tiếp
+  index.ts                       # Public exports: PrismaClient, Prisma namespace và model types
 apps/api/src/
-  core/                          # database lifecycle, filter, pipe; phần chưa có để trống
-  shared/constants/, helpers/    # trống
-  features/
-    tenant-system/
-    work-management/
-    hr-management/
-    crm/
+  core/                          # Hạ tầng backend: database lifecycle, auth actor context, filters, pipes, notification events
+  features/                      # 4 module chính và 39 chức năng con
+    tenant-system/               # Xác thực phiên, tài khoản, vai trò/phân quyền, nhật ký kiểm toán bất biến
+    hr-management/               # Sơ đồ tổ chức phòng ban, chức danh ngạch bậc, hồ sơ nhân sự
+    work-management/             # Nhiệm vụ, quy trình việc, bình luận, dự án, mốc & QA, timesheet, thông báo SSE
+    crm/                         # Khung module thương mại & quan hệ khách hàng (sẵn sàng mở rộng)
 apps/web/src/
-  app/                           # route trực tiếp dưới 4 miền; layout gốc giữ shell
-  app/(auth)/, (error-pages)/     # trống
-  core/                          # layout/context/config/UI tools/tokens
-  icons/
-  features/                      # đối xứng 39 chức năng con với BE
+  app/                           # Next.js App Router (route mỏng trực tiếp dưới 4 miền; layout gốc giữ shell)
+  core/                          # Shell, layout, context providers, Feature Registry, Design System
+  icons/                         # Bộ biểu tượng SVG tự sở hữu
+  features/                      # Đối xứng 39 chức năng con với BE, tự sở hữu components, hooks, api, types
 ```
 
-## Sở hữu và tích hợp
+---
 
-Từng feature sở hữu components/hooks/api/types/constants riêng ở FE và controller/service/repository/DTO/model riêng ở BE nếu đã được viết. Không có generic CRUD factory hoặc base business repository. Các primitive tương tự trong các feature vẫn được sở hữu độc lập.
+## 1. Nguyên tắc sở hữu & Ranh giới phân hệ
 
-Frontend feature không import business implementation từ core hoặc nội bộ feature khác. Hai tích hợp công khai có chủ đích: Tasks dùng KanbanBoard và TaskComments qua public index, truyền dữ liệu/callback; hai view không import repository, hook, API hay component nội bộ của Tasks. Core/route chỉ ghép public feature exports.
+1. **Độc lập tuyệt đối giữa các Leaf Feature:**
+   - Từng feature tự sở hữu `components/`, `hooks/`, `api/`, `types.ts`, `constants.ts` ở FE và `<name>.controller.ts`, `<name>.service.ts`, `<name>.repository.ts`, `dto/`, `prisma/` ở BE.
+   - Không có generic CRUD factory, base business repository hay package contracts dùng chung.
+   - Các UI primitives dù tương tự giữa các feature vẫn được sở hữu độc lập trong thư mục `components/primitives/` của chính feature đó.
 
-Backend feature chỉ truy cập delegate Prisma của chính mình. Các main module và `work-management.insights.module.ts` là composition root, chỉ sử dụng public service/module exports. Core hạ tầng không import nghiệp vụ. Root AppModule ghép CoreModule và đúng 4 main module, kể cả Tenant/HR/CRM hiện chưa có controller con.
+2. **Giao tiếp Frontend có chủ đích:**
+   - Frontend feature tuyệt đối không import source hoặc primitives nội bộ của feature khác.
+   - Hai tích hợp công khai được phép: `Tasks` nhúng `KanbanBoard` (`work/kanban`) và `TaskComments` (`work/task-comments`) qua public `index.ts`, truyền dữ liệu/callback.
+   - Shell và routing chỉ tích hợp thông qua public feature exports.
 
-DTO validation BE và transport types/schema FE nằm trong feature của từng bên. Frontend không import NestJS, Prisma, database package hoặc source BE. Backend chưa có và frontend chưa có không được lấp bằng stub/endpoint giả.
+3. **Giao tiếp Backend & Tầng điều phối (Composition):**
+   - Leaf backend feature chỉ truy cập delegate Prisma và model do chính mình sở hữu.
+   - Tích hợp liên phân hệ nằm ở các Composition Service/Module thuộc tầng domain (ví dụ: `work-management.composition.ts`, `accounts-credentials.ts`, `permission-audit.ts`), trao đổi thông qua public interfaces hoặc service ports được định nghĩa rõ ràng.
+   - Tầng core chỉ chứa hạ tầng, không chứa nghiệp vụ. Root `AppModule` ghép `CoreModule` và đúng 4 main modules (`TenantSystemModule`, `HrManagementModule`, `WorkManagementModule`, `CrmModule`).
 
-## Database và vận hành
+4. **Kiểm soát dữ liệu & Kiểu:**
+   - DTO validation ở BE sử dụng Zod schema nghiêm ngặt; transport types ở FE được định nghĩa riêng trong `types.ts`.
+   - Frontend không import NestJS, Prisma, `@oneops/database` hoặc source code backend.
+   - Backend chưa triển khai và frontend chưa triển khai được giữ trống hoàn toàn; không tạo stub hay mock endpoint giả mạo.
 
-Mỗi implementation dữ liệu giữ namespace work_* đã có, tên model và API giữ tương thích. Prisma đọc trực tiếp các model tại features/*/*/*/prisma thông qua link cấu hình, không nhân đôi schema. Database package chỉ phát client/types; connection lifecycle và PostgreSQL adapter ở API core/database.
+---
 
-`npm run db:generate` generate và build package database trước khi API được biên dịch. `db:migrate`/`db:dev` chạy tại package database; migration history được di chuyển nguyên vẹn. Chuyển thư mục không tạo SQL mới hoặc xóa dữ liệu. localStorage vẫn chỉ dùng cho UI preferences.
+## 2. Cơ sở dữ liệu & Vận hành
 
-Optimistic version, strict Zod, chuẩn hóa code, transaction/list pagination và kiểm tra ngày/giờ được giữ. API/E2E chỉ dùng database có tên kết thúc _test. Các điểm tích hợp backend vẫn là hợp đồng giữa chức năng, không thể đảm bảo tuyệt đối không có merge conflict tại cấu hình/lockfile/migration.
+1. **Multi-Schema PostgreSQL Federation:**
+   - Mỗi chức năng sở hữu database schema riêng (ví dụ: `tenant_auth`, `tenant_accounts`, `tenant_permissions`, `tenant_checklog`, `hr_departments`, `hr_positions`, `hr_employees`, `work_tasks`, `work_task_workflow`, `work_task_comments`, `work_milestones_qa`, `work_timesheets`, `work_calendar`, `work_requests`, `work_messages`, `work_notes`, `work_reports`, `work_notifications`, `work_dashboard`, `work_projects`).
+   - Prisma đọc trực tiếp các model tại `apps/api/src/features/*/*/*/prisma/*.prisma` qua directory junction `packages/database/prisma/schema/features`.
+   - Gói `@oneops/database` quản lý cấu hình, client và lịch sử migration.
 
-## Kiểm tra
+2. **Tính toàn vẹn & Cơ chế an toàn:**
+   - **Optimistic Concurrency Control:** Các model nghiệp vụ đều duy trì trường `version: Int` để ngăn chặn race conditions và xung đột ghi đè.
+   - **Xóa mềm (Soft Delete) & Append-Only Log:** Dữ liệu thông báo (`work_notifications`) áp dụng xóa mềm `deletedAt` để bảo toàn vết; dữ liệu nhật ký kiểm toán (`tenant_checklog`) là bất biến (không có lệnh UPDATE/DELETE).
+   - **Chu kỳ kiểm thử:** API và E2E tests chỉ chạy trên database riêng có tên kết thúc bằng `_test` (ví dụ: `etctha_test`). Không áp dụng migration phá hủy hoặc reset dữ liệu để sửa drift.
 
-Boundary check xác minh 4 nhóm, 39 thư mục đối xứng, artifact/model/delegate cho 9 implementation hiện hữu; chặn import nội bộ trái phép và tái tạo cấu trúc cũ. Unused check đọc import graph của source và entrypoint database package. Build chạy cả hai kiểm tra. Empty folders tái lập qua structure:prepare, không cần file .gitkeep/source giả.
+---
 
-Giữ UI/UX, catalog/design tokens. Chưa bổ sung authentication, RBAC, event bus, realtime, attendance/leaves, CRM hoặc các nghiệp vụ được mô tả trong file mẫu nhưng chưa có trong mã nguồn.
+## 3. Hệ thống kiểm định & Trạng thái hiện tại
 
-Company-profile hiện để trống; departments-teams thuộc HR có trách nhiệm quản lý phòng ban, chưa có code. Audit-backups đã bỏ; checklog là nhánh nhật ký được giữ. Bảng work_teams cũ được giữ trong database/migration history nhưng không còn model hoặc endpoint trong runtime.
+- **Boundary Check (`npm run architecture:check`):**
+  - Xác minh 4 nhóm chính, 39 thư mục đối xứng FE/BE.
+  - Kiểm tra tính hợp lệ của **20 implementation dữ liệu** (9 record APIs, 11 resource APIs) và **30 models** thuộc quyền sở hữu của các chức năng.
+  - Chặn triệt để các vi phạm ranh giới, import nội bộ chéo hoặc cấu trúc ngoài quy chuẩn.
+- **Unused Check (`npm run unused:check`):**
+  - Quét toàn bộ đồ thị import từ các entrypoint ứng dụng. Xác nhận **540 source files** đều đang được sử dụng và liên kết hợp lệ.
+- **Tokens Check (`npm run tokens:check`):**
+  - Xác minh **187 semantic design tokens** được ánh xạ nhất quán qua 10 tệp dẫn xuất.
+- **Các phân hệ đã triển khai:**
+  - `tenant-system`: Xác thực phiên trượt (`tenant-auth`), tài khoản (`accounts`), vai trò & phân quyền (`roles-permissions`), nhật ký kiểm toán (`checklog`).
+  - `hr-management`: Sơ đồ phòng ban phân cấp (`departments-teams`), chức danh ngạch bậc (`positions-grades`), hồ sơ nhân sự (`employee-directory`).
+  - `work-management`: Tổng quan hôm nay (`workspace-today`), công việc (`tasks`), quy trình việc máy trạng thái (`task-workflow`), bình luận (`task-comments`), Kanban (`kanban`), dự án (`project-spaces`), mốc tiến độ & QA Gate (`milestones-qa`), chấm công (`timesheets`), lịch (`calendar`), đề xuất (`tickets-approvals`), trao đổi (`internal-chat`), tri thức SOP (`knowledge-sop`), báo cáo (`reports`), thông báo thời gian thực SSE (`notifications`).
+- **Các phần tiếp tục để trống:**
+  - `company-profile`, `work-policies`, `automation-hub` (`external-integrations`, `workflow-rules`, `ai-copilot`).
+  - Phân hệ chấm công/nghỉ phép mở rộng (`attendance`, `leaves`) và định biên (`resource-capacity`).
+  - Phân hệ `crm` (tiền bán hàng, hợp đồng, chăm sóc khách hàng).

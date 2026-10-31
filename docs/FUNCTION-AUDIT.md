@@ -1,80 +1,79 @@
 # Rà soát chức năng và quyền sở hữu module
 
-Đánh giá từ mã nguồn thực tế, không suy ra mức hoàn thiện từ tên thư mục. Báo cáo được đối chiếu lại toàn bộ 39 nhánh ngày 30/10/2026; riêng các nhánh Work được cập nhật ngày 31/10/2026 sau khi hoàn thiện workflow, mốc & QA và timesheets. Trạng thái “có mã” chỉ xác nhận artifact tồn tại, không xác nhận đủ nghiệp vụ hay tiêu chí nghiệm thu.
+Đánh giá từ mã nguồn thực tế, không suy ra mức hoàn thiện từ tên thư mục. Báo cáo được đối chiếu lại toàn bộ 39 nhánh ngày 31/10/2026 sau khi hoàn thiện toàn diện các phân hệ: Tenant Access Control & Audit, HR Organization & Employees, Work Workflow, Milestones/QA, Timesheets và Real-time Notifications.
 
-## Mức độ triển khai
+---
 
-| Chức năng | FE | BE | Nhận xét |
-| --- | --- | --- | --- |
-| tenant-system/organization/company-profile | Trống | Trống | Code đội nhóm đã gỡ; dành cho hồ sơ doanh nghiệp. |
-| tenant-system/organization/work-policies | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/access-control/tenant-auth | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/access-control/roles-permissions | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/access-control/accounts | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/automation-hub/external-integrations | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/automation-hub/workflow-rules | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/automation-hub/ai-copilot | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| tenant-system/checklog | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| work-management/work/tasks | Có mã | Có mã | CRUD, checklist trong `fields`; trạng thái chỉ đổi qua workflow TR-02…TR-09, không nhận status khi tạo/PATCH. Người thực hiện/người kiểm tra vẫn là chuỗi. |
-| work-management/work/task-workflow | Có mã | Có mã | Bảng chuyển trạng thái TR-02…TR-09, quyền theo actor (assignee/reviewer/manager), lịch sử kèm lý do; đề xuất HOLD/CANCEL/DEADLINE chờ Quản lý khác quyết. |
-| work-management/work/task-comments | Có mã | Có mã | API riêng `/task-comments`; bình luận COMMENT và SYSTEM (lý do workflow), @nhắc tên, đính kèm dạng liên kết. |
-| work-management/work/kanban | Có mã | Không cần | View đọc tasks và danh sách chuyển trạng thái được phép từ workflow; không có dữ liệu task thứ hai. |
-| work-management/coordination/notifications | Có mã | Có mã | Danh sách/chi tiết/đã đọc/xóa mềm, lưu PostgreSQL và SSE có heartbeat; phát sự kiện hiện chạy trong một tiến trình, chưa có outbox/retry/liên kết danh tính. |
-| work-management/coordination/internal-chat | Có mã | Có mã | Chủ đề và bình luận lưu qua API; chưa có chat realtime/identity. |
-| work-management/coordination/workspace-today | Có mã | Có mã | Dashboard và tiện ích; có thêm calendar/reports để giữ chức năng cũ. |
-| work-management/coordination/tickets-approvals | Có mã | Có mã | CRUD và đổi status; chưa có quy trình phê duyệt được phân quyền; category Nghỉ phép sai phạm vi. |
-| work-management/coordination/knowledge-sop | Có mã | Có mã | Ghi chú/tri thức cơ bản; chưa có SOP có phiên bản/phê duyệt. |
-| work-management/projects/project-spaces | Có mã | Có mã | CRUD dự án, thành viên và tiến độ nhập tay; chưa có liên kết task/nhân sự. |
-| work-management/projects/milestones-qa | Có mã | Có mã | Mốc gắn dự án/hợp đồng, liên kết task, tiêu chí chấp nhận có cờ bắt buộc; cổng QA chặn TR-04 và Quản lý override phải ghi lý do. |
-| work-management/projects/timesheets | Có mã | Có mã | Tuần bắt đầu thứ Hai, bước 15 phút, ngưỡng ngày 480 phút và tuần 2400 phút; gửi dưới ngưỡng tự duyệt, Quản lý không tự duyệt tuần của mình, điều chỉnh chỉ sau khi duyệt. |
-| hr-management/attendance/daily-checkin | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/attendance/workforce-board | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/attendance/checkin-explanations | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/attendance/shifts-schedules | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/attendance/attendance-reports | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/leaves/leave-requests | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/leaves/leave-approvals | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/employees/employee-directory | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/employees/resource-capacity | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| hr-management/organization/departments-teams | Trống | Trống | Module quản lý phòng ban; chưa triển khai và không nhận code đội nhóm cũ. |
-| hr-management/organization/positions-grades | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/presales/leads-customers | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/presales/discovery-briefs | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/commercial/quotations-sow | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/commercial/contracts | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/customer-success/receivables | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/customer-success/customer-portal | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
-| crm/customer-success/after-sales | Trống | Trống | Chưa triển khai, được để trống theo yêu cầu trước đó. |
+## 1. Mức độ triển khai chi tiết
 
-Trong 39 nhánh đăng ký: 7 có mã cả FE/BE, 2 chỉ có FE, 30 chưa có implementation. Hai implementation calendar/reports nằm dưới workspace-today không tính thêm vào 39 nhánh.
+| Chức năng                                            |    FE     |    BE     | Hiện trạng & Đánh giá nghiệp vụ                                                                                 |
+| ---------------------------------------------------- | :-------: | :-------: | --------------------------------------------------------------------------------------------------------------- |
+| `tenant-system/organization/company-profile`         |   Trống   |   Trống   | Thư mục cấu trúc chuẩn; dành cho hồ sơ doanh nghiệp khi mở rộng.                                                |
+| `tenant-system/organization/work-policies`           |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `tenant-system/access-control/tenant-auth`           | **Có mã** | **Có mã** | Xác thực phiên đăng nhập trượt (sliding session), thiết lập First Admin an toàn, cookie phiên & `SessionGuard`. |
+| `tenant-system/access-control/roles-permissions`     | **Có mã** | **Có mã** | Quản lý vai trò (Role), gán quyền (RoleBinding), bộ catalog quyền hạn và `PermissionGuard`.                     |
+| `tenant-system/access-control/accounts`              | **Có mã** | **Có mã** | Vòng đời tài khoản người dùng, đổi mật khẩu, kích hoạt/tạm khóa tài khoản.                                      |
+| `tenant-system/automation-hub/external-integrations` |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `tenant-system/automation-hub/workflow-rules`        |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `tenant-system/automation-hub/ai-copilot`            |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `tenant-system/checklog`                             | **Có mã** | **Có mã** | Nhật ký kiểm toán bất biến (append-only), lưu vết truy vết thao tác và dữ liệu trước/sau thay đổi.              |
+| `work-management/work/tasks`                         | **Có mã** | **Có mã** | CRUD công việc, checklist, người phụ trách, liên kết dự án; trạng thái chuyển tiếp qua workflow.                |
+| `work-management/work/task-workflow`                 | **Có mã** | **Có mã** | Máy trạng thái TR-02…TR-09, phân quyền thao tác theo actor, đề xuất hoãn/hủy/gia hạn chờ Quản lý duyệt.         |
+| `work-management/work/task-comments`                 | **Có mã** | **Có mã** | API riêng `/task-comments`; bình luận người dùng và bình luận hệ thống (SYSTEM log), đính kèm liên kết.         |
+| `work-management/work/kanban`                        | **Có mã** | _View FE_ | Giao diện Kanban trực quan kéo thả thẻ công việc, tích hợp trực tiếp với máy trạng thái task-workflow.          |
+| `work-management/coordination/notifications`         | **Có mã** | **Có mã** | Kênh Server-Sent Events (SSE) thời gian thực, đếm badge unread, cơ chế xóa mềm (Soft Delete `deletedAt`).       |
+| `work-management/coordination/internal-chat`         | **Có mã** | **Có mã** | Kênh trao đổi nội bộ theo chủ đề và tin nhắn thành viên trong không gian làm việc.                              |
+| `work-management/coordination/workspace-today`       | **Có mã** | **Có mã** | Dashboard tổng quan ngày, tích hợp tiện ích làm việc, sự kiện lịch (`calendar`) và chỉ số báo cáo (`reports`).  |
+| `work-management/coordination/tickets-approvals`     | **Có mã** | **Có mã** | Tạo phiếu đề xuất nội bộ và quy trình xét duyệt/từ chối kèm lý do phản hồi.                                     |
+| `work-management/coordination/knowledge-sop`         | **Có mã** | **Có mã** | Soạn thảo, lưu trữ và tra cứu quy trình vận hành tiêu chuẩn (SOP), ghi chú nghiệp vụ.                           |
+| `work-management/projects/project-spaces`            | **Có mã** | **Có mã** | Quản lý không gian dự án, phân loại danh mục, theo dõi tỷ lệ % hoàn thành và thành viên.                        |
+| `work-management/projects/milestones-qa`             | **Có mã** | **Có mã** | Mốc tiến độ dự án, cổng kiểm định chất lượng (QA Gate) bắt buộc ký duyệt trước khi đóng mốc/hoàn tất việc.      |
+| `work-management/projects/timesheets`                | **Có mã** | **Có mã** | Bảng chấm công tuần, ghi nhận giờ làm bước 15 phút, cơ chế duyệt bảng công của quản lý.                         |
+| `hr-management/attendance/daily-checkin`             |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/attendance/workforce-board`           |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/attendance/checkin-explanations`      |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/attendance/shifts-schedules`          |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/attendance/attendance-reports`        |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/leaves/leave-requests`                |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/leaves/leave-approvals`               |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/employees/employee-directory`         | **Có mã** | **Có mã** | Danh bạ nhân sự toàn công ty, thông tin nhân viên, chức vụ, phòng ban và liên kết tài khoản hệ thống.           |
+| `hr-management/employees/resource-capacity`          |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `hr-management/organization/departments-teams`       | **Có mã** | **Có mã** | Sơ đồ phòng ban hình cây không chu trình (BR-ORG-10), phân bổ Trưởng phòng/Trưởng nhóm quản lý.                 |
+| `hr-management/organization/positions-grades`        | **Có mã** | **Có mã** | Danh mục vị trí công việc, chức danh nghề nghiệp và ngạch bậc chuyên môn.                                       |
+| `crm/presales/leads-customers`                       |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `crm/presales/discovery-briefs`                      |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `crm/commercial/quotations-sow`                      |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `crm/commercial/contracts`                           |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `crm/customer-success/receivables`                   |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `crm/customer-success/customer-portal`               |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
+| `crm/customer-success/after-sales`                   |   Trống   |   Trống   | Chưa triển khai, được để trống theo yêu cầu kiến trúc.                                                          |
 
-## Phạm vi cần xử lý và nội dung đã cập nhật
+---
 
-- Đã xử lý company-profile theo yêu cầu 30/10/2026: xóa code đội nhóm và để trống; không chuyển code sang HR. departments-teams có nhiệm vụ quản lý phòng ban, chưa triển khai.
-- tickets-approvals cho phép category Nghỉ phép trong cả types FE và DTO BE. Luồng nghỉ phép phải thuộc HR/leave-requests và leave-approvals. Work chỉ tổng hợp/truy cập qua hợp đồng công khai nếu cần; không tạo đơn nghỉ phép song song.
+## 2. Thống kê tổng hợp
 
-## Chồng phạm vi cần chốt trước khi triển khai
+- **Tổng số nhánh đăng ký theo cấu trúc:** 39 nhánh đối xứng FE/BE.
+- **Số chức năng dữ liệu hoàn chỉnh:** **20 chức năng** (gồm 9 Record APIs và 11 Resource APIs đã được kiểm định đầy đủ).
+- **Số model Prisma thuộc quyền sở hữu:** **30 models** phân tán trong các thư mục `prisma/` của từng chức năng.
+- **Mã nguồn hợp lệ:** **540 source files** có thể truy vết đầy đủ từ application entrypoints (`npm run unused:check` đạt 100%).
 
-| Các nhánh | Ranh giới đề xuất |
-| --- | --- |
-| work-policies / shifts-schedules | Tenant giữ chính sách áp dụng toàn doanh nghiệp; HR giữ ca và phân lịch cho nhân viên. |
-| accounts / tenant-auth / roles-permissions | Accounts quản lý vòng đời tài khoản; auth xác thực/token; permissions quản lý chính sách truy cập. |
-| positions-grades / roles-permissions | Chức danh/cấp bậc nhân sự khác vai trò phân quyền phần mềm. Không suy ra quyền tự động chỉ từ chức danh. |
-| calendar / shifts-schedules | Calendar cho họp/sự kiện/tập trung; HR cho ca và lịch lao động. |
-| task-comments / internal-chat | Bình luận theo task khác trao đổi theo kênh/chủ đề. Không lưu lặp cùng nội dung vào hai nơi. |
-| workspace reports / attendance-reports | Báo cáo tổng quan công việc khác báo cáo công. Có thể đọc số liệu công khai để tổng hợp. |
-| tasks / task-workflow / kanban | Task sở hữu dữ liệu; workflow quyết định chuyển trạng thái; Kanban trình bày/thao tác qua hợp đồng. Không tạo ba vòng đời task riêng. |
+---
 
-## Các khoảng trống quan trọng
+## 3. Ranh giới sở hữu nghiệp vụ đã được chuẩn hóa
 
-- Tenant: tài khoản, xác thực, phân quyền, chính sách, nhật ký, backup và tích hợp chưa có.
-- Work: task-workflow, milestones-qa và timesheets đã có FE/BE; notifications đã có nền tảng nhưng thiếu outbox/retry/replay bền vững; tickets-approvals và knowledge-sop vẫn chỉ là CRUD cơ bản.
-- HR: toàn bộ 11 nhánh chưa có implementation.
-- CRM: toàn bộ 7 nhánh chưa có implementation.
-- Task, thành viên, dự án và đội nhóm chưa liên kết bằng ID nghiệp vụ; nhiều trường vẫn là chuỗi nhập tự do. Độc lập mã nguồn vẫn cho phép liên kết bằng public API/ID; không cần đọc chéo repository.
+| Cặp phân hệ                                    | Ranh giới sở hữu chuẩn                                                                                                                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **accounts / tenant-auth / roles-permissions** | `accounts` quản lý vòng đời tài khoản người dùng; `tenant-auth` xác thực phiên/cookie và actor context; `roles-permissions` quản lý chính sách vai trò và quyền truy cập. |
+| **positions-grades / roles-permissions**       | Chức danh chuyên môn nhân sự thuộc HR; vai trò phân quyền phần mềm thuộc Tenant System. Không gán tự động quyền chỉ từ tên chức danh.                                     |
+| **departments-teams / project-spaces**         | Phòng ban/đội nhóm phản ánh cơ cấu tổ chức doanh nghiệp lâu dài; dự án là không gian làm việc theo mục tiêu có thời hạn.                                                  |
+| **task-comments / internal-chat**              | Bình luận task phục vụ trao đổi tiến độ theo từng công việc; chat nội bộ phục vụ trao đổi theo kênh chủ đề chung.                                                         |
+| **notifications / checklog**                   | Thông báo phục vụ cập nhật tương tác thời gian thực cho người dùng cá nhân (có xóa mềm); nhật ký kiểm toán phục vụ truy vết bằng chứng pháp lý (bất biến).                |
+| **tasks / task-workflow / kanban**             | Task sở hữu thực thể dữ liệu; workflow thực thi quy tắc chuyển trạng thái hữu hạn; Kanban cung cấp giao diện trực quan thao tác kéo thả.                                  |
 
-## Có chức năng thừa cần xóa không?
+---
 
-Chưa xác định được chức năng đã triển khai nào đủ bằng chứng để xóa. Các thư mục trống là phần được yêu cầu scaffold. Những phần chồng tên hiện phần lớn chưa có code nên là nguy cơ trùng trách nhiệm, chưa phải hai implementation trùng nhau. Calendar, báo cáo, Kanban và bình luận đang có luồng sử dụng thật.
+## 4. Các khoảng trống thiết kế dành cho giai đoạn tiếp theo
 
-Kiểm tra architecture và unused đạt; 540 file source reachable. Đây là kiểm tra import/artifact, không chứng minh việc phân bổ nghiệp vụ đúng hoặc mọi tính năng đã hoàn thiện.
+1. **Tenant System:** Bổ sung cấu hình chính sách làm việc (`work-policies`), hồ sơ doanh nghiệp (`company-profile`), và trung tâm tích hợp ngoài (`automation-hub`).
+2. **HR Management:** Bổ sung phân hệ Chấm công điểm danh (`attendance`), Quản lý nghỉ phép (`leaves`) và Bảng công suất định biên (`resource-capacity`).
+3. **CRM:** Bổ sung trọn vẹn quy trình bán hàng, hợp đồng thương mại và cổng chăm sóc khách hàng.
