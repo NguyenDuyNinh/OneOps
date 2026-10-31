@@ -1,0 +1,64 @@
+/// Project milestone with a lifecycle independent from Task status.
+model Milestone {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @db.Uuid
+  name         String   @db.VarChar(300)
+  description  String   @default("") @db.VarChar(2000)
+  targetDate   DateTime @db.Date
+  status       String   @db.VarChar(20)
+  contractRef  String   @default("") @db.VarChar(200)
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([projectId, status, targetDate])
+  @@map("milestones")
+  @@schema("work_milestones_qa")
+}
+
+/// Link between a milestone and a task; taskId is a scalar reference, never a foreign key.
+model MilestoneItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  milestoneId String   @db.Uuid
+  taskId      String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@unique([milestoneId, taskId])
+  @@index([taskId])
+  @@map("milestone_items")
+  @@schema("work_milestones_qa")
+}
+
+/// Acceptance criterion (lightweight test case) attached to a task.
+model AcceptanceItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  title     String   @db.VarChar(500)
+  steps     String   @default("") @db.VarChar(2000)
+  expected  String   @default("") @db.VarChar(1000)
+  mandatory Boolean  @default(true)
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@map("acceptance_items")
+  @@schema("work_milestones_qa")
+}
+
+/// Immutable inspection result; corrections append a newer row instead of editing.
+model AcceptanceResult {
+  id               String   @id @default(uuid()) @db.Uuid
+  itemId           String   @db.Uuid
+  outcome          String   @db.VarChar(10)
+  note             String   @default("") @db.VarChar(2000)
+  evidence         Json     @default("[]")
+  testedByAccountId String? @db.Uuid
+  testedByName     String   @default("") @db.VarChar(200)
+  isOverride       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@index([itemId, createdAt])
+  @@map("acceptance_results")
+  @@schema("work_milestones_qa")
+}

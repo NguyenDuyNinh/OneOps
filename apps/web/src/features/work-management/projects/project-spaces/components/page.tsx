@@ -232,9 +232,15 @@ export function ModulePage() {
                         <span>{record.code}</span>
                         <Badge>{record.status}</Badge>
                       </div>
-                      <button onClick={() => setDetail(record)}>
-                        <h3>{record.name}</h3>
-                      </button>
+                      <h3>
+                        <button
+                          type="button"
+                          className={styles.titleLink}
+                          onClick={() => setDetail(record)}
+                        >
+                          {record.name}
+                        </button>
+                      </h3>
                       <p className="text-sm text-muted-foreground line-clamp-3">
                         {record.note}
                       </p>

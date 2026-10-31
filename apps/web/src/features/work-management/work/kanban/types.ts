@@ -5,5 +5,13 @@ export type BoardTask = {
   status: string;
   date: string;
   assignee: string;
-  fields: { priority?: string; project?: string };
+  reviewer: string;
+  priority?: string;
+  project?: string;
+  /** Statuses the signed-in actor may move this task to right now. */
+  available: string[];
+  /** Blocks drag/drop while a proposal is waiting for a manager. */
+  locked?: boolean;
 };
+
+export type BoardMove = (taskId: string, toStatus: string) => void;

@@ -67,14 +67,18 @@ export function WorkspaceProvider({
 
 export function Modal({
   title,
+  description,
   children,
   onClose,
   className,
+  sheet,
 }: {
   title: string;
+  description?: string;
   children: React.ReactNode;
   onClose: () => void;
   className?: string;
+  sheet?: boolean;
 }) {
   const trigger = useRef<HTMLElement | null>(null);
   return (
@@ -86,6 +90,8 @@ export function Modal({
     >
       <DialogContent
         title={title}
+        description={description}
+        sheet={sheet}
         className={cn("modal", className)}
         onOpenAutoFocus={() => {
           trigger.current = document.activeElement as HTMLElement;

@@ -46,7 +46,7 @@ Optimistic version, strict Zod, chuẩn hóa code, transaction/list pagination v
 
 ## Kiểm tra
 
-Boundary check xác minh 4 nhóm, 39 thư mục đối xứng, artifact/model/delegate cho 8 implementation hiện hữu; chặn import nội bộ trái phép và tái tạo cấu trúc cũ. Unused check đọc import graph của source và entrypoint database package. Build chạy cả hai kiểm tra. Empty folders tái lập qua structure:prepare, không cần file .gitkeep/source giả.
+Boundary check xác minh 4 nhóm, 39 thư mục đối xứng, artifact/model/delegate cho 9 implementation hiện hữu; chặn import nội bộ trái phép và tái tạo cấu trúc cũ. Unused check đọc import graph của source và entrypoint database package. Build chạy cả hai kiểm tra. Empty folders tái lập qua structure:prepare, không cần file .gitkeep/source giả.
 
 Giữ UI/UX, catalog/design tokens. Chưa bổ sung authentication, RBAC, event bus, realtime, attendance/leaves, CRM hoặc các nghiệp vụ được mô tả trong file mẫu nhưng chưa có trong mã nguồn.
 

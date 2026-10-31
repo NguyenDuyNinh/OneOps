@@ -26,3 +26,14 @@ Chưa có xác thực/SSO/RBAC, liên kết thành viên với tài khoản th�
 ## Dữ liệu
 
 Migration mới chỉ tạo 9 namespace work_* và bảng/index. Không sửa/xóa dữ liệu cũ, không tự biến hồ sơ cũ thành công việc và không tự seed số liệu giả vào database ứng dụng. API/E2E chỉ dọn các bảng mới trong database kết thúc _test.
+
+## Cập nhật 31/10/2026 — hoàn thiện nhánh Work
+
+Phần nêu “chưa có” ở trên chỉ đúng cho bản 29/10. Hiện trạng nhánh Work:
+
+- Trạng thái công việc chỉ đổi qua `task-workflow` (TR-02…TR-09); tạo mới và PATCH không nhận `status`. Mỗi lần đổi lưu lịch sử, lý do và một bình luận SYSTEM.
+- Người thực hiện gửi đề xuất HOLD/CANCEL/DEADLINE; Quản lý khác người đề xuất quyết định, tự quyết bị từ chối.
+- Bình luận tách thành API riêng `/task-comments` (COMMENT/SYSTEM, @nhắc tên, đính kèm liên kết); không còn lưu trong `fields` của công việc.
+- `milestones-qa` quản lý mốc theo dự án/hợp đồng, liên kết công việc và tiêu chí chấp nhận; tiêu chí bắt buộc chặn TR-04 và Quản lý chỉ override khi ghi lý do.
+- `timesheets` ghi tuần bắt đầu thứ Hai, bước 15 phút, ngưỡng ngày 480 phút và tuần 2400 phút; gửi dưới ngưỡng tự duyệt, Quản lý không tự duyệt tuần của mình, điều chỉnh chỉ sau khi duyệt.
+- Đã có xác thực phiên, tài khoản, phân quyền theo hành động và thông báo trong ứng dụng (SSE). Vẫn chưa có upload file, chat realtime, outbox/retry cho thông báo, đồng bộ lịch ngoài và kết nối Base.

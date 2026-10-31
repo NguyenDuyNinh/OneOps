@@ -16,13 +16,14 @@ import {
 } from "./dto/tasks.dto.js";
 import { listQuery, versionSchema } from "./dto/tasks.dto.js";
 import { SchemaPipe } from "../../../../core/pipes/validation.pipe.js";
+import { RequirePermission } from "../../../../core/auth/actor-context.js";
 import { TasksService } from "./tasks.service.js";
 @Controller("tasks")
 export class TasksController {
   constructor(private readonly service: TasksService) {}
-  @Get() list(
-    @Query(new SchemaPipe(listQuery)) query: z.infer<typeof listQuery>,
-  ) {
+  @Get()
+  @RequirePermission("work-management/work/tasks", "view")
+  list(@Query(new SchemaPipe(listQuery)) query: z.infer<typeof listQuery>) {
     return this.service.list(query);
   }
   @Post() create(
@@ -30,7 +31,9 @@ export class TasksController {
   ) {
     return this.service.create(input);
   }
-  @Get(":id") get(@Param("id", new ParseUUIDPipe()) id: string) {
+  @Get(":id")
+  @RequirePermission("work-management/work/tasks", "view")
+  get(@Param("id", new ParseUUIDPipe()) id: string) {
     return this.service.get(id);
   }
   @Patch(":id") update(

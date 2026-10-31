@@ -7,6 +7,7 @@ import {
 import {
   definition,
   fields,
+  officeToday,
 } from "@/features/work-management/work/tasks/constants";
 import { client } from "@/features/work-management/work/tasks/api/client";
 import { recordsChanged } from "@/features/work-management/work/tasks/hooks/use-records";
@@ -17,6 +18,7 @@ import {
   Select,
   Textarea,
 } from "@/features/work-management/work/tasks/components/primitives/forms";
+
 export function RecordForm({
   record,
   onClose,
@@ -44,8 +46,8 @@ export function RecordForm({
           code: String(data.get("code") || "").trim(),
           name: String(data.get("name") || "").trim(),
           date: String(data.get("date")),
-          status: String(data.get("status")),
           assignee: String(data.get("assignee") || "").trim(),
+          reviewer: String(data.get("reviewer") || "").trim(),
           note: String(data.get("note") || "").trim(),
           scope: record?.scope || "",
           fields: extra,
@@ -59,8 +61,19 @@ export function RecordForm({
         setPending(true);
         setError("");
         try {
-          if (record) await client.update(record, parsed.data);
-          else await client.create(parsed.data);
+          if (record) {
+            const { fields: patch } = parsed.data;
+            await client.update(record, {
+              code: parsed.data.code,
+              name: parsed.data.name,
+              date: parsed.data.date,
+              assignee: parsed.data.assignee,
+              reviewer: parsed.data.reviewer,
+              note: parsed.data.note,
+              scope: parsed.data.scope,
+              fields: patch,
+            });
+          } else await client.create(parsed.data);
           recordsChanged();
           notify(record ? "Đã cập nhật thành công." : "Đã tạo thành công.");
           onClose();
@@ -89,15 +102,7 @@ export function RecordForm({
               name="date"
               type="date"
               required
-              defaultValue={
-                record?.date ||
-                new Intl.DateTimeFormat("en-CA", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                }).format(new Date())
-              }
+              defaultValue={record?.date || officeToday()}
             />
           </label>
         </div>
@@ -113,22 +118,19 @@ export function RecordForm({
         </label>
         <div className="form-grid">
           <label>
-            Trạng thái
-            <Select
-              name="status"
-              defaultValue={record?.status || definition.statuses[0]}
-            >
-              {definition.statuses.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </Select>
-          </label>
-          <label>
             {definition.personLabel}
             <Input
               name="assignee"
               maxLength={150}
               defaultValue={record?.assignee}
+            />
+          </label>
+          <label>
+            {definition.reviewerLabel}
+            <Input
+              name="reviewer"
+              maxLength={150}
+              defaultValue={record?.reviewer}
             />
           </label>
         </div>
@@ -184,6 +186,11 @@ export function RecordForm({
             defaultValue={record?.note}
           />
         </label>
+        <p className="text-sm text-muted-foreground">
+          {record
+            ? "Trạng thái chỉ thay đổi qua quy trình duyệt ở trang chi tiết công việc."
+            : "Công việc mới luôn bắt đầu ở trạng thái “Cần làm”."}
+        </p>
         {error && (
           <p className="error" role="alert">
             {error}
@@ -194,8 +201,8 @@ export function RecordForm({
         <Button type="button" variant="secondary" onClick={onClose}>
           Hủy
         </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? "Đang lưu…" : record ? "Lưu thay đổi" : "Tạo mới"}
+        <Button type="submit" loading={pending}>
+          {record ? "Lưu thay đổi" : "Tạo mới"}
         </Button>
       </footer>
     </form>

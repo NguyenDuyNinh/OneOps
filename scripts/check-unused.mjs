@@ -73,7 +73,7 @@ for (const file of files) {
 }
 const roots = files.filter(
   (f) =>
-    f.includes("/apps/web/src/app/") &&
+    f.replace(/\\/g, "/").includes("/apps/web/src/app/") &&
     /(?:page|route|layout|not-found)\.tsx?$/.test(f),
 );
 roots.push(

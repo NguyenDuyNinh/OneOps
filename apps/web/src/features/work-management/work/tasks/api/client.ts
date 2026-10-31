@@ -2,10 +2,21 @@ import { z } from "zod";
 import {
   createSchema,
   recordSchema,
-  type RecordInput,
   type RecordDto,
+  type RecordInput,
+  type TaskUpdate,
 } from "@/features/work-management/work/tasks/types";
 import { apiRequest } from "@/features/work-management/work/tasks/api/http";
+
+const pageSchema = z
+  .object({
+    items: z.array(recordSchema),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+  })
+  .strict();
+
 export const client = {
   async list(signal?: AbortSignal) {
     const items: RecordDto[] = [];
@@ -14,19 +25,21 @@ export const client = {
       const result = await apiRequest(
         "/tasks?page=" + page + "&pageSize=100",
         { signal },
-        z.object({
-          items: z.array(recordSchema),
-          total: z.number(),
-          page: z.number(),
-          pageSize: z.number(),
-        }),
+        pageSchema,
       );
       items.push(...result.items);
       if (items.length >= result.total || !result.items.length) return items;
       page++;
     }
   },
-  update: (record: RecordDto, patch: Partial<RecordInput>) =>
+  get: (id: string) => apiRequest(`/tasks/${id}`, {}, recordSchema),
+  create: (data: RecordInput) =>
+    apiRequest(
+      "/tasks",
+      { method: "POST", body: JSON.stringify(createSchema.parse(data)) },
+      recordSchema,
+    ),
+  update: (record: RecordDto, patch: TaskUpdate) =>
     apiRequest(
       "/tasks/" + record.id,
       {
@@ -40,10 +53,4 @@ export const client = {
       method: "DELETE",
       body: JSON.stringify({ version: record.version }),
     }),
-  create: (data: RecordInput) =>
-    apiRequest(
-      "/tasks",
-      { method: "POST", body: JSON.stringify(createSchema.parse(data)) },
-      recordSchema,
-    ),
 };

@@ -1,0 +1,26 @@
+/// Nhật ký kiểm toán bất biến: chỉ ghi thêm, không sửa, không xóa.
+model AuditEntry {
+  id                   String   @id @default(uuid()) @db.Uuid
+  featureKey           String   @db.VarChar(120)
+  action               String   @db.VarChar(60)
+  targetType           String   @default("") @db.VarChar(60)
+  targetId             String   @default("") @db.VarChar(200)
+  summary              String   @db.VarChar(500)
+  reason               String   @default("") @db.VarChar(500)
+  beforeValue          Json?    @map("before_value")
+  afterValue           Json?    @map("after_value")
+  actorAccountId       String?  @db.Uuid
+  actorName            String   @default("") @db.VarChar(200)
+  actorRole            String   @default("") @db.VarChar(20)
+  isSystemAdmin        Boolean  @default(false)
+  isOutOfScopeOverride Boolean  @default(false)
+  result               String   @default("SUCCESS") @db.VarChar(10)
+  createdAt            DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([featureKey, createdAt])
+  @@index([actorAccountId, createdAt])
+  @@index([action])
+  @@map("audit_entries")
+  @@schema("tenant_checklog")
+}

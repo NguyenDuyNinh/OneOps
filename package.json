@@ -27,6 +27,7 @@
     "db:migrate": "npm run db:migrate -w @oneops/database",
     "db:dev": "npm run db:dev -w @oneops/database --",
     "architecture:check": "node scripts/check-boundaries.mjs",
+    "test:architecture": "node --test tests/architecture-registry.test.mjs",
     "test:api": "npm run db:generate && npm run build -w @oneops/api && node --test tests/api.integration.test.mjs",
     "test:e2e": "playwright test",
     "unused:check": "node scripts/check-unused.mjs",

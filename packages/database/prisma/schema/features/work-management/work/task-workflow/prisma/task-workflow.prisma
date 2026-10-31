@@ -1,0 +1,46 @@
+/// Immutable history of every task transition and proposal decision (BR-ST-06).
+model WorkTaskTransition {
+  id             String   @id @default(uuid()) @db.Uuid
+  taskId         String   @db.Uuid
+  fromStatus     String   @db.VarChar(150)
+  toStatus       String   @db.VarChar(150)
+  code           String   @db.VarChar(20)
+  reason         String   @default("") @db.VarChar(2000)
+  actorAccountId String?  @db.Uuid
+  actorName      String   @default("") @db.VarChar(200)
+  actorRole      String   @default("") @db.VarChar(20)
+  taskVersion    Int
+  requestKey     String?  @db.VarChar(128)
+  occurredAt     DateTime @default(now())
+
+  @@unique([taskId, requestKey])
+  @@index([taskId, occurredAt])
+  @@map("task_transitions")
+  @@schema("work_task_workflow")
+}
+
+/// Hold/cancel/deadline proposals; at most one PENDING row per task (BR-ST-04).
+model WorkTaskProposal {
+  id                  String    @id @default(uuid()) @db.Uuid
+  taskId              String    @db.Uuid
+  kind                String    @db.VarChar(20)
+  status              String    @db.VarChar(20)
+  reason              String    @db.VarChar(2000)
+  payload             Json      @default("{}")
+  requestedByAccountId String?  @db.Uuid
+  requestedByName     String    @default("") @db.VarChar(200)
+  decidedByAccountId  String?   @db.Uuid
+  decidedByName       String    @default("") @db.VarChar(200)
+  decisionReason      String    @default("") @db.VarChar(2000)
+  decidedAt           DateTime?
+  requestKey          String?   @db.VarChar(128)
+  version             Int       @default(1)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([taskId, requestKey])
+  @@index([taskId, status])
+  @@index([status, kind])
+  @@map("task_proposals")
+  @@schema("work_task_workflow")
+}

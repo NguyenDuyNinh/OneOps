@@ -1,37 +1,80 @@
 .board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  display: flex;
   gap: 16px;
-  overflow: auto;
+  overflow-x: auto;
   padding-bottom: 16px;
+  align-items: flex-start;
+  scroll-snap-type: x proximity;
 }
 .column {
-  background: var(--surface-soft, var(--surface));
+  flex: 1 1 0;
+  min-width: 232px;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
-  min-height: 220px;
+  min-height: 240px;
+  scroll-snap-align: start;
 }
 .column h2 {
   font-size: 14px;
   display: flex;
   justify-content: space-between;
-  margin: 0 0 16px;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+.column.target {
+  border-color: var(--action);
+  box-shadow: 0 0 0 1px var(--action);
+}
+.hint {
+  color: var(--foreground-muted);
+  font-size: 12px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--foreground-muted);
+  font-size: 12px;
+  padding: 16px 12px;
+  text-align: center;
+  margin: 0;
 }
 .card {
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 10px;
-  padding: 16px;
+  padding: 14px;
   margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.card button {
+.title {
   text-align: left;
-}
-.card h3 {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  min-width: 0;
   font-size: 14px;
-  margin: 10px 0;
+  font-weight: 600;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.title:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.project {
+  color: var(--foreground-muted);
+  font-size: 12px;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .meta {
   color: var(--foreground-muted);
@@ -41,8 +84,17 @@
   justify-content: space-between;
   gap: 8px;
 }
-@media (max-width: 800px) {
-  .board {
-    grid-template-columns: repeat(4, 260px);
+.late {
+  color: var(--danger);
+  font-weight: 600;
+}
+.move {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  .column {
+    flex: 0 0 262px;
   }
 }

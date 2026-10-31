@@ -18,6 +18,32 @@
     "schema": "apps/api/src/features/work-management/work/tasks/prisma/task.prisma"
   },
   {
+    "name": "task-workflow",
+    "feature": "work-management/work/task-workflow",
+    "route": "task-workflow",
+    "webRoute": "/work-management/tasks",
+    "kind": "resource",
+    "frontend": false,
+    "models": ["WorkTaskTransition", "WorkTaskProposal"],
+    "databaseSchema": "work_task_workflow",
+    "schemas": [
+      "apps/api/src/features/work-management/work/task-workflow/prisma/task-workflow.prisma"
+    ]
+  },
+  {
+    "name": "task-comments",
+    "feature": "work-management/work/task-comments",
+    "route": "task-comments",
+    "webRoute": "/work-management/tasks",
+    "kind": "resource",
+    "frontend": false,
+    "models": ["WorkTaskComment"],
+    "databaseSchema": "work_task_comments",
+    "schemas": [
+      "apps/api/src/features/work-management/work/task-comments/prisma/task-comments.prisma"
+    ]
+  },
+  {
     "name": "project-spaces",
     "feature": "work-management/projects/project-spaces",
     "route": "projects",
@@ -25,6 +51,35 @@
     "model": "WorkProject",
     "databaseSchema": "work_projects",
     "schema": "apps/api/src/features/work-management/projects/project-spaces/prisma/project-space.prisma"
+  },
+  {
+    "name": "milestones-qa",
+    "feature": "work-management/projects/milestones-qa",
+    "route": "milestones",
+    "webRoute": "/work-management/milestones",
+    "kind": "resource",
+    "models": [
+      "Milestone",
+      "MilestoneItem",
+      "AcceptanceItem",
+      "AcceptanceResult"
+    ],
+    "databaseSchema": "work_milestones_qa",
+    "schemas": [
+      "apps/api/src/features/work-management/projects/milestones-qa/prisma/milestones-qa.prisma"
+    ]
+  },
+  {
+    "name": "timesheets",
+    "feature": "work-management/projects/timesheets",
+    "route": "timesheets",
+    "webRoute": "/work-management/timesheets",
+    "kind": "resource",
+    "models": ["TimesheetPeriod", "TimeEntry", "TimeEntryAdjustment"],
+    "databaseSchema": "work_timesheets",
+    "schemas": [
+      "apps/api/src/features/work-management/projects/timesheets/prisma/timesheets.prisma"
+    ]
   },
   {
     "name": "calendar",
@@ -70,5 +125,98 @@
     "model": "WorkReport",
     "databaseSchema": "work_reports",
     "schema": "apps/api/src/features/work-management/coordination/workspace-today/reports/prisma/reports.prisma"
+  },
+  {
+    "name": "notifications",
+    "feature": "work-management/coordination/notifications",
+    "route": "notifications",
+    "webRoute": "/work-management/notifications",
+    "model": "WorkNotification",
+    "databaseSchema": "work_notifications",
+    "schema": "apps/api/src/features/work-management/coordination/notifications/prisma/notifications.prisma"
+  },
+  {
+    "name": "departments-teams",
+    "feature": "hr-management/organization/departments-teams",
+    "route": "org",
+    "webRoute": "/hr-management/organization",
+    "kind": "resource",
+    "models": ["Department", "Team"],
+    "databaseSchema": "hr_departments",
+    "schemas": [
+      "apps/api/src/features/hr-management/organization/departments-teams/prisma/departments-teams.prisma"
+    ]
+  },
+  {
+    "name": "positions-grades",
+    "feature": "hr-management/organization/positions-grades",
+    "route": "positions",
+    "webRoute": "/hr-management/positions",
+    "kind": "resource",
+    "models": ["Position", "Grade"],
+    "databaseSchema": "hr_positions",
+    "schemas": [
+      "apps/api/src/features/hr-management/organization/positions-grades/prisma/positions-grades.prisma"
+    ]
+  },
+  {
+    "name": "employee-directory",
+    "feature": "hr-management/employees/employee-directory",
+    "route": "employees",
+    "webRoute": "/hr-management/employees",
+    "kind": "resource",
+    "models": ["Employee"],
+    "databaseSchema": "hr_employees",
+    "schemas": [
+      "apps/api/src/features/hr-management/employees/employee-directory/prisma/employee-directory.prisma"
+    ]
+  },
+  {
+    "name": "accounts",
+    "feature": "tenant-system/access-control/accounts",
+    "route": "accounts",
+    "webRoute": "/tenant-system/accounts",
+    "kind": "resource",
+    "models": ["Account", "AccountAccessChange"],
+    "databaseSchema": "tenant_accounts",
+    "schemas": [
+      "apps/api/src/features/tenant-system/access-control/accounts/prisma/accounts.prisma"
+    ]
+  },
+  {
+    "name": "tenant-auth",
+    "feature": "tenant-system/access-control/tenant-auth",
+    "route": "auth",
+    "webRoute": "/tenant-system/auth",
+    "kind": "resource",
+    "models": ["AuthSession"],
+    "databaseSchema": "tenant_auth",
+    "schemas": [
+      "apps/api/src/features/tenant-system/access-control/tenant-auth/prisma/tenant-auth.prisma"
+    ]
+  },
+  {
+    "name": "roles-permissions",
+    "feature": "tenant-system/access-control/roles-permissions",
+    "route": "permissions",
+    "webRoute": "/tenant-system/roles-permissions",
+    "kind": "resource",
+    "models": ["RolePermission", "PermissionChange"],
+    "databaseSchema": "tenant_permissions",
+    "schemas": [
+      "apps/api/src/features/tenant-system/access-control/roles-permissions/prisma/roles-permissions.prisma"
+    ]
+  },
+  {
+    "name": "checklog",
+    "feature": "tenant-system/checklog",
+    "route": "checklog",
+    "webRoute": "/tenant-system/checklog",
+    "kind": "resource",
+    "models": ["AuditEntry"],
+    "databaseSchema": "tenant_checklog",
+    "schemas": [
+      "apps/api/src/features/tenant-system/checklog/prisma/checklog.prisma"
+    ]
   }
 ]

@@ -13,7 +13,13 @@
 }
 .toolbar select {
   width: auto;
-  min-width: 150px;
+  min-width: 170px;
+}
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 .table {
   width: 100%;
@@ -24,18 +30,24 @@
   text-align: left;
   padding: 14px 12px;
   border-bottom: 1px solid var(--line);
-  white-space: nowrap;
+  vertical-align: middle;
 }
 .table th {
   color: var(--foreground-muted);
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
+}
+.table td {
+  font-size: 14px;
+}
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--action) 6%, transparent);
 }
 .table button {
+  text-align: left;
   color: var(--action);
-}
-.table select {
-  min-width: 150px;
+  overflow-wrap: anywhere;
 }
 .empty {
   text-align: center;
@@ -60,16 +72,45 @@
 .details {
   padding: 24px;
 }
-.details p {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.details > * + * {
+  margin-top: 20px;
 }
 .details h3 {
   font-size: 14px;
-  margin-top: 24px;
+  margin: 0 0 8px;
+}
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.meta dt {
+  color: var(--foreground-muted);
+  font-size: 12px;
+}
+.meta dd {
+  margin: 2px 0 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+  font-size: 13px;
+  margin: 0;
 }
 .check {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   padding: 8px 0;
@@ -93,5 +134,8 @@
 @media (max-width: 800px) {
   .header h1 {
     font-size: 20px;
+  }
+  .details {
+    padding: 16px;
   }
 }

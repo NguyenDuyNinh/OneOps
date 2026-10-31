@@ -52,20 +52,26 @@ class WorkspaceInsightsService {
     const completed = tasks.filter(
       (task) => task.status === "Hoàn thành",
     ).length;
+    // BR-ST-08/BR-ST-11: cancelled work leaves the denominator and only the
+    // actionable statuses can be late.
+    const scoped =
+      first.total - tasks.filter((task) => task.status === "Đã hủy").length;
     return {
       totalTasks: first.total,
       completedTasks: completed,
       overdueTasks: tasks.filter(
-        (task) => task.status !== "Hoàn thành" && task.date < today,
+        (task) =>
+          ["Cần làm", "Đang làm", "Làm lại"].includes(task.status) &&
+          task.date < today,
       ).length,
       projects: projects.total,
       pendingRequests: requests.total,
       todayEvents,
-      completionRate: first.total
-        ? Math.round((completed / first.total) * 100)
-        : 0,
+      completionRate: scoped ? Math.round((completed / scoped) * 100) : 0,
       tasks: tasks
-        .filter((task) => task.status !== "Hoàn thành")
+        .filter(
+          (task) => task.status !== "Hoàn thành" && task.status !== "Đã hủy",
+        )
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(0, 8)
         .map(({ id, name, status, date, assignee }) => ({

@@ -1,0 +1,39 @@
+model Account {
+  id                 String    @id @default(uuid()) @db.Uuid
+  username           String    @db.VarChar(80)
+  usernameKey        String    @unique @db.VarChar(80)
+  displayName        String    @db.VarChar(200)
+  email              String    @default("") @db.VarChar(200)
+  emailKey           String?   @unique @db.VarChar(200)
+  employeeCode       String    @default("") @db.VarChar(50)
+  role               String    @default("EMPLOYEE") @db.VarChar(20)
+  isSystemAdmin      Boolean   @default(false)
+  status             String    @default("ACTIVE") @db.VarChar(20)
+  passwordHash       String    @db.VarChar(200)
+  mustChangePassword Boolean   @default(true)
+  lockedReason       String    @default("") @db.VarChar(500)
+  lastLoginAt        DateTime?
+  version            Int       @default(1)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([role, status])
+  @@index([displayName])
+  @@map("accounts")
+  @@schema("tenant_accounts")
+}
+
+model AccountAccessChange {
+  id        String   @id @default(uuid()) @db.Uuid
+  accountId String   @db.Uuid
+  kind      String   @db.VarChar(20)
+  fromValue String   @db.VarChar(40)
+  toValue   String   @db.VarChar(40)
+  actorName String   @db.VarChar(200)
+  reason    String   @default("") @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@map("account_access_changes")
+  @@schema("tenant_accounts")
+}

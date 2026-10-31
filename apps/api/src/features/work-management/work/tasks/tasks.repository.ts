@@ -8,8 +8,13 @@ import {
   type Transaction,
 } from "../../../../core/database/database.module.js";
 import { Prisma, type WorkTask } from "@oneops/database";
-import { recordSchema } from "./dto/tasks.dto.js";
+import {
+  INITIAL_TASK_STATUS,
+  recordSchema,
+  type TaskStatus,
+} from "./dto/tasks.dto.js";
 import type { RecordInput, RecordDto, ListQuery } from "./dto/tasks.dto.js";
+
 @Injectable()
 export class TasksRepository {
   constructor(private readonly db: Database) {}
@@ -26,18 +31,34 @@ export class TasksRepository {
       status: row.status,
       date: row.date.toISOString().slice(0, 10),
       assignee: row.assignee,
+      reviewer: row.reviewer,
       note: row.note,
-      fields: row.fields as RecordDto["fields"],
+      fields: this.fields(row.fields),
       version: row.version,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     });
   }
+  /** Rows written before the comment and reviewer split may still carry legacy keys. */
+  private fields(value: Prisma.JsonValue): RecordDto["fields"] {
+    const raw = { ...(value as Record<string, unknown>) };
+    delete raw.comments;
+    delete raw.nguoiKiemTra;
+    return raw as RecordDto["fields"];
+  }
   async list(query: ListQuery) {
+    const ids = query.ids
+      ? query.ids
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : [];
     const where: Prisma.WorkTaskWhereInput = {
+      ...(ids.length ? { id: { in: ids } } : {}),
       ...(query.scope !== undefined ? { scope: query.scope } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.assignee !== undefined ? { assignee: query.assignee } : {}),
+      ...(query.reviewer !== undefined ? { reviewer: query.reviewer } : {}),
       ...(query.q
         ? {
             OR: [
@@ -75,8 +96,10 @@ export class TasksRepository {
       await this.table(tx).create({
         data: {
           ...input,
+          status: INITIAL_TASK_STATUS,
           scope: input.scope || "",
           assignee: input.assignee || "",
+          reviewer: input.reviewer || "",
           note: input.note || "",
           fields: input.fields || {},
           codeKey: input.code.normalize("NFKC").toLocaleLowerCase("vi"),
@@ -106,6 +129,46 @@ export class TasksRepository {
       await this.get(id, tx);
       throw new ConflictException(
         "Bản ghi đã thay đổi. Vui lòng tải lại trước khi lưu.",
+      );
+    }
+    return this.get(id, tx);
+  }
+  /** Status writes are reserved for the workflow composition; never exposed as a route body. */
+  async applyStatus(
+    id: string,
+    status: TaskStatus,
+    version: number,
+    tx: Transaction = this.db,
+  ) {
+    return this.writeVersioned(id, { status }, version, tx);
+  }
+  async setDeadline(
+    id: string,
+    date: string,
+    version: number,
+    tx: Transaction = this.db,
+  ) {
+    return this.writeVersioned(
+      id,
+      { date: new Date(date + "T00:00:00.000Z") },
+      version,
+      tx,
+    );
+  }
+  private async writeVersioned(
+    id: string,
+    data: Prisma.WorkTaskUpdateManyMutationInput,
+    version: number,
+    tx: Transaction,
+  ) {
+    const result = await this.table(tx).updateMany({
+      where: { id, version },
+      data: { ...data, version: { increment: 1 } },
+    });
+    if (result.count !== 1) {
+      await this.get(id, tx);
+      throw new ConflictException(
+        "Công việc đã thay đổi. Vui lòng tải lại trước khi thao tác.",
       );
     }
     return this.get(id, tx);

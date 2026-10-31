@@ -1,0 +1,63 @@
+/// Weekly timesheet period; approval is required only when the week exceeds a threshold.
+model TimesheetPeriod {
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeId    String    @db.VarChar(100)
+  employeeName  String    @db.VarChar(200)
+  weekStart     DateTime  @db.Date
+  weekEnd       DateTime  @db.Date
+  status        String    @db.VarChar(20)
+  totalMinutes  Int       @default(0)
+  overThreshold Boolean   @default(false)
+  submittedAt   DateTime?
+  decidedAt     DateTime?
+  decidedByName String    @default("") @db.VarChar(200)
+  decisionNote  String    @default("") @db.VarChar(1000)
+  version       Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([employeeId, weekStart])
+  @@index([status, weekStart])
+  @@map("timesheet_periods")
+  @@schema("work_timesheets")
+}
+
+/// One row of worked minutes; an approved period locks its entries.
+model TimeEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  periodId   String   @db.Uuid
+  employeeId String   @db.VarChar(100)
+  projectId  String?  @db.Uuid
+  taskId     String?  @db.Uuid
+  workDate   DateTime @db.Date
+  minutes    Int
+  note       String   @default("") @db.VarChar(1000)
+  billable   Boolean  @default(false)
+  status     String   @default("ACTIVE") @db.VarChar(20)
+  version    Int      @default(1)
+  requestKey String?  @unique @db.VarChar(120)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([periodId, workDate])
+  @@index([employeeId, workDate])
+  @@map("time_entries")
+  @@schema("work_timesheets")
+}
+
+/// Append-only correction after a period was approved; the original entry stays untouched.
+model TimeEntryAdjustment {
+  id             String   @id @default(uuid()) @db.Uuid
+  entryId        String   @db.Uuid
+  periodId       String   @db.Uuid
+  deltaMinutes   Int
+  note           String   @db.VarChar(1000)
+  adjustedById   String?  @db.Uuid
+  adjustedByName String   @db.VarChar(200)
+  createdAt      DateTime @default(now())
+
+  @@index([entryId])
+  @@index([periodId])
+  @@map("time_entry_adjustments")
+  @@schema("work_timesheets")
+}

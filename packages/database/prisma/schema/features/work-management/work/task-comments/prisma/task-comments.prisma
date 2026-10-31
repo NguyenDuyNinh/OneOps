@@ -1,0 +1,16 @@
+/// Task comments live in their own persistence instead of the task JSON payload.
+model WorkTaskComment {
+  id              String   @id @default(uuid()) @db.Uuid
+  taskId          String   @db.Uuid
+  authorAccountId String?  @db.Uuid
+  author          String   @db.VarChar(200)
+  body            String   @db.VarChar(4000)
+  mentions        Json     @default("[]")
+  attachments     Json     @default("[]")
+  kind            String   @default("COMMENT") @db.VarChar(20)
+  createdAt       DateTime @default(now())
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+  @@schema("work_task_comments")
+}

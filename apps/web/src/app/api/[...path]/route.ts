@@ -15,10 +15,14 @@ async function proxy(
     process.env.API_ORIGIN || "http://127.0.0.1:4000",
   );
   target.search = request.nextUrl.search;
+  const cookie = request.headers.get("cookie");
   try {
     const upstream = await fetch(target, {
       method: request.method,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookie ? { Cookie: cookie } : {}),
+      },
       ...(["GET", "HEAD"].includes(request.method)
         ? {}
         : { body: await request.text() }),
@@ -26,13 +30,16 @@ async function proxy(
       redirect: "manual",
       signal: request.signal,
     });
+    const headers = new Headers({
+      "Content-Type":
+        upstream.headers.get("content-type") || "application/json",
+      "Cache-Control": "no-store",
+    });
+    for (const value of upstream.headers.getSetCookie())
+      headers.append("Set-Cookie", value);
     return new Response(upstream.body, {
       status: upstream.status,
-      headers: {
-        "Content-Type":
-          upstream.headers.get("content-type") || "application/json",
-        "Cache-Control": "no-store",
-      },
+      headers,
     });
   } catch {
     return Response.json(

@@ -7,6 +7,7 @@ model WorkTask {
   status String @db.VarChar(150)
   date DateTime @db.Date
   assignee String @default("") @db.VarChar(150)
+  reviewer String @default("") @db.VarChar(150)
   note String @default("") @db.VarChar(2000)
   fields Json @default("{}")
   version Int @default(1)

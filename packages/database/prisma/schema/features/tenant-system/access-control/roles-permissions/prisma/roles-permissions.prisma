@@ -1,0 +1,34 @@
+// Permission matrix: one row per (feature, role). Rows only exist once a tenant
+// overrides the built-in default, so an empty table never blocks a fresh install.
+model RolePermission {
+  id         String   @id @default(uuid()) @db.Uuid
+  featureKey String   @db.VarChar(120)
+  role       String   @db.VarChar(20)
+  actions    String[]
+  version    Int      @default(1)
+  updatedBy  String   @default("") @db.VarChar(200)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([featureKey, role])
+  @@index([role])
+  @@map("role_permissions")
+  @@schema("tenant_permissions")
+}
+
+// Local history of matrix edits. Central audit search stays in `tenant-system/checklog`.
+model PermissionChange {
+  id          String   @id @default(uuid()) @db.Uuid
+  featureKey  String   @db.VarChar(120)
+  role        String   @db.VarChar(20)
+  fromActions String[]
+  toActions   String[]
+  actorName   String   @db.VarChar(200)
+  reason      String   @default("") @db.VarChar(500)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([featureKey, role])
+  @@map("permission_changes")
+  @@schema("tenant_permissions")
+}

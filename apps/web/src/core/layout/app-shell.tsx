@@ -2,14 +2,19 @@
 
 import Link from "next/link";
 import { navigationIcons, switchApp, vi } from "@/icons";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { getModule, modules } from "@/core/config/feature-registry";
 import { useWorkspace } from "@/core/ui/primitives/workspace";
 import { Icon } from "@/core/ui/primitives/icon";
 import { Button } from "@/core/ui/primitives/button";
-import { BookOpen, Palette } from "lucide-react";
+import { BookOpen, LogOut, Palette } from "lucide-react";
 import { AppearanceControls } from "@/core/ui/primitives/preferences";
+import { NotificationBell } from "@/features/work-management/coordination/notifications";
+import { useSession } from "@/features/tenant-system/access-control/tenant-auth/index";
+
+const AUTH_ROUTE = "/tenant-system/auth";
+const roleLabels = { EMPLOYEE: "Nhân viên", MANAGER: "Quản lý" } as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -22,7 +27,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const router = useRouter();
+  const { status, actor, signOut } = useSession();
   const params = useSearchParams();
+  const isAuth = path === AUTH_ROUTE || path.startsWith(`${AUTH_ROUTE}/`);
+  const mustChangePassword = Boolean(actor?.mustChangePassword);
+  const signedIn = status === "ready" && !mustChangePassword;
+  useEffect(() => {
+    if (!isAuth && (status === "anon" || mustChangePassword))
+      router.replace(AUTH_ROUTE);
+  }, [isAuth, status, mustChangePassword, router]);
   const config = getModule(path.replace(/^\/|\/$/g, "")) || modules[0];
   const isLibrary = path === "/design-system" || path === "/design-tokens";
   const [menuState, setMenuState] = useState<Record<string, boolean>>({});
@@ -37,6 +51,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     (params.get("scope") === "all" ? config.navigation.allSection : "") ||
     config.navigation.defaultSection;
   const submenuTitle = config.navigation.title;
+  if (isAuth) return <>{children}</>;
+  if (!signedIn)
+    return <div className="loading-screen">Đang kiểm tra phiên đăng nhập…</div>;
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -134,6 +151,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           )}
         </div>
         <div className="account-actions">
+          <NotificationBell recipient={actor?.displayName ?? null} />
           <img
             className="flag"
             src={vi.src}
@@ -151,13 +169,22 @@ function Shell({ children }: { children: React.ReactNode }) {
               aria-hidden="true"
               className="text-xs font-semibold text-primary"
             >
-              OP
+              {(actor?.displayName ?? "OP")
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(-2)
+                .map((part) => part[0])
+                .join("")
+                .toLocaleUpperCase("vi")}
             </span>
           </button>
           {account && (
             <div className="account-popover">
-              <strong>Phiên làm việc cục bộ</strong>
-              <p>Chưa kết nối tài khoản hệ thống.</p>
+              <strong>{actor?.displayName}</strong>
+              <p>
+                {actor ? roleLabels[actor.role] : ""}
+                {actor?.isSystemAdmin ? " · Quản trị hệ thống" : ""}
+              </p>
               <div className="mb-4">
                 <AppearanceControls />
               </div>
@@ -177,9 +204,22 @@ function Shell({ children }: { children: React.ReactNode }) {
                 <Palette className="size-4" />
                 Design tokens
               </Link>
-              <Button variant="secondary" onClick={() => setAccount(false)}>
-                Đóng
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    setAccount(false);
+                    await signOut();
+                    router.replace(AUTH_ROUTE);
+                  }}
+                >
+                  <LogOut aria-hidden="true" />
+                  Đăng xuất
+                </Button>
+                <Button variant="secondary" onClick={() => setAccount(false)}>
+                  Đóng
+                </Button>
+              </div>
             </div>
           )}
         </div>

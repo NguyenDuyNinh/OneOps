@@ -1,0 +1,16 @@
+model WorkNotification {
+  id        String    @id @default(uuid()) @db.Uuid
+  recipient String    @db.VarChar(150)
+  source    String    @db.VarChar(20)
+  title     String    @db.VarChar(500)
+  body      String    @default("") @db.VarChar(2000)
+  link      String    @db.VarChar(500)
+  sourceId  String?   @db.Uuid
+  readAt    DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  @@index([recipient, readAt, createdAt])
+  @@index([deletedAt])
+  @@map("records")
+  @@schema("work_notifications")
+}

@@ -6,7 +6,6 @@ import { databaseUrl, cleanDatabase } from "../apps/api/test/database.mjs";
 let app, origin, createApp;
 const statuses = {
   "workspace-today": "Đang dùng",
-  tasks: "Cần làm",
   "project-spaces": "Lên kế hoạch",
   calendar: "Đã lên lịch",
   "tickets-approvals": "Chờ duyệt",
@@ -14,21 +13,76 @@ const statuses = {
   "knowledge-sop": "Bản nháp",
   reports: "Bản nháp",
 };
+/** Tasks never accept a status on create; the workflow is the only writer. */
 const input = (module = "tasks", patch = {}) => ({
   code: "WORK-01",
   name: "Công việc kiểm thử",
   date: "2026-11-15",
-  status: statuses[module],
+  ...(statuses[module] ? { status: statuses[module] } : {}),
   fields: {},
   ...patch,
 });
-async function request(route, method = "GET", body) {
+const ADMIN = {
+  username: "  Quan.Ly ",
+  displayName: "Phạm Quản Lý",
+  email: "Quan.Ly@OneOps.vn",
+  employeeCode: "EMP-01",
+  role: "MANAGER",
+  isSystemAdmin: true,
+  password: "mat-khau-01",
+  actorName: "Quản trị viên",
+};
+let cookie = "";
+let adminId = "";
+async function request(route, method = "GET", body, headers = {}) {
   const response = await fetch(`${origin}/api/v1${route}`, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { Cookie: cookie } : {}),
+      ...headers,
+    },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   return { status: response.status, body: await response.json() };
+}
+/** One approved workflow move; returns the refreshed task snapshot. */
+async function transition(task, toStatus, patch = {}, headers = {}) {
+  const result = await request(
+    `/task-workflow/tasks/${task.id}/transitions`,
+    "POST",
+    { toStatus, version: task.version, ...patch },
+    headers,
+  );
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  return result.body.task;
+}
+async function completeTask(task) {
+  const started = await transition(task, "Đang làm");
+  const review = await transition(started, "Chờ kiểm tra");
+  return transition(review, "Hoàn thành");
+}
+async function signIn(username, password) {
+  const response = await fetch(`${origin}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  return {
+    status: response.status,
+    body: await response.json(),
+    cookie: (response.headers.get("set-cookie") ?? "").split(";")[0],
+  };
+}
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+async function waitFor(check, predicate, timeout = 3000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const value = await check();
+    if (predicate(value)) return value;
+    await sleep(25);
+  }
+  throw new Error("Timed out waiting for notifications");
 }
 before(async () => {
   const migration = spawnSync(
@@ -53,9 +107,31 @@ before(async () => {
 after(async () => {
   await app?.close();
 });
-beforeEach(cleanDatabase);
-test("eight implementations own separate CRUD APIs, codes, records and namespaces", async () => {
-  for (const module of modules) {
+beforeEach(async () => {
+  await cleanDatabase();
+  cookie = "";
+  const created = await request("/accounts", "POST", ADMIN);
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  adminId = created.body.id;
+  const signed = await signIn("quan.ly", ADMIN.password);
+  assert.equal(signed.status, 200, JSON.stringify(signed.body));
+  cookie = signed.cookie;
+});
+test("the API rejects anonymous calls until the tenant has a session", async () => {
+  const anonymous = await fetch(`${origin}/api/v1/tasks`);
+  assert.equal(anonymous.status, 401);
+  const forged = await fetch(`${origin}/api/v1/tasks`, {
+    headers: { Cookie: "oneops_session=gia-mao" },
+  });
+  assert.equal(forged.status, 401);
+  assert.equal((await request("/tasks")).status, 200);
+});
+test("data implementations own separate CRUD APIs, codes, records and namespaces", async () => {
+  for (const module of modules.filter(
+    (module) =>
+      module.route !== "notifications" &&
+      (module.kind ?? "records") === "records",
+  )) {
     const created = await request(
       "/" + module.route,
       "POST",
@@ -69,6 +145,850 @@ test("eight implementations own separate CRUD APIs, codes, records and namespace
   }
   const task = (await request("/tasks")).body.items[0];
   assert.equal((await request("/projects/" + task.id)).status, 404);
+});
+test("organization resource keeps departments and teams versioned without hard delete", async () => {
+  const department = await request("/org/departments", "POST", {
+    code: " hr-01 ",
+    name: "Phòng Nhân sự",
+    managerName: "Nguyễn An",
+  });
+  assert.equal(department.status, 201, JSON.stringify(department.body));
+  assert.equal(department.body.code, "hr-01");
+  assert.equal(department.body.status, "ACTIVE");
+  assert.equal(department.body.teamCount, 0);
+  assert.equal(department.body.activeTeamCount, 0);
+  assert.equal(department.body.version, 1);
+  assert.equal(
+    (
+      await request("/org/departments", "POST", {
+        code: "HR-01",
+        name: "Phòng trùng mã",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request("/org/departments", "POST", {
+        code: "HR-02",
+        name: "Phòng lạ",
+        unknown: true,
+      })
+    ).status,
+    400,
+  );
+  const team = await request("/org/teams", "POST", {
+    departmentId: department.body.id,
+    code: "HR-A",
+    name: "Nhóm Tuyển dụng",
+    description: "Tuyển dụng nội bộ",
+    managerName: "Trần Bình",
+  });
+  assert.equal(team.status, 201, JSON.stringify(team.body));
+  const list = await request(`/org/teams?departmentId=${department.body.id}`);
+  assert.equal(list.body.total, 1);
+  assert.equal(list.body.items[0].id, team.body.id);
+  assert.equal((await request("/org/departments")).body.items[0].teamCount, 1);
+  assert.equal(
+    (await request("/org/departments")).body.items[0].activeTeamCount,
+    1,
+  );
+  const blocked = await request(
+    `/org/departments/${department.body.id}`,
+    "PATCH",
+    { version: 1, status: "INACTIVE" },
+  );
+  assert.equal(blocked.status, 409, JSON.stringify(blocked.body));
+  const renamed = await request(`/org/teams/${team.body.id}`, "PATCH", {
+    version: 1,
+    name: "Nhóm Tuyển dụng & Đào tạo",
+  });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.body.name, "Nhóm Tuyển dụng & Đào tạo");
+  assert.equal(renamed.body.description, "Tuyển dụng nội bộ");
+  assert.equal(renamed.body.managerName, "Trần Bình");
+  assert.equal(renamed.body.status, "ACTIVE");
+  assert.equal(renamed.body.version, 2);
+  assert.equal(
+    (
+      await request(`/org/teams/${team.body.id}`, "PATCH", {
+        version: 1,
+        status: "INACTIVE",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request(`/org/teams/${team.body.id}`, "PATCH", {
+        version: 2,
+        status: "INACTIVE",
+      })
+    ).status,
+    200,
+  );
+  const afterDeactivation = (await request("/org/departments")).body.items[0];
+  assert.equal(afterDeactivation.teamCount, 1);
+  assert.equal(afterDeactivation.activeTeamCount, 0);
+  assert.equal(
+    (
+      await request(`/org/departments/${department.body.id}`, "PATCH", {
+        version: 1,
+        status: "INACTIVE",
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request(`/org/teams/${team.body.id}`, "DELETE", { version: 3 }))
+      .status,
+    404,
+  );
+});
+test("positions and grades keep optional linkage and reject invalid rank", async () => {
+  const position = await request("/org/positions", "POST", {
+    code: "P-01",
+    name: "Kỹ sư phần mềm",
+  });
+  assert.equal(position.status, 201, JSON.stringify(position.body));
+  assert.equal(position.body.gradeCount, 0);
+  assert.equal(
+    (
+      await request("/org/positions", "POST", {
+        code: "p-01",
+        name: "Chức danh trùng mã",
+      })
+    ).status,
+    409,
+  );
+  const grade = await request("/org/grades", "POST", {
+    code: "G-01",
+    name: "Bậc 1",
+    rank: 1,
+    positionId: position.body.id,
+  });
+  assert.equal(grade.status, 201, JSON.stringify(grade.body));
+  assert.equal(grade.body.positionId, position.body.id);
+  assert.equal((await request("/org/positions")).body.items[0].gradeCount, 1);
+  assert.equal(
+    (await request(`/org/grades?positionId=${position.body.id}`)).body.total,
+    1,
+  );
+  const loose = await request("/org/grades", "POST", {
+    code: "G-02",
+    name: "Bậc chưa gắn",
+    rank: 3,
+    description: "Bậc dự phòng",
+  });
+  assert.equal(loose.status, 201, JSON.stringify(loose.body));
+  assert.equal(loose.body.positionId, null);
+  assert.equal((await request("/org/grades")).body.total, 2);
+  const linked = await request(`/org/grades/${loose.body.id}`, "PATCH", {
+    version: 1,
+    positionId: position.body.id,
+  });
+  assert.equal(linked.status, 200);
+  assert.equal(linked.body.positionId, position.body.id);
+  assert.equal(linked.body.rank, 3);
+  assert.equal(linked.body.description, "Bậc dự phòng");
+  assert.equal(linked.body.status, "ACTIVE");
+  const unlinked = await request(`/org/grades/${loose.body.id}`, "PATCH", {
+    version: 2,
+    positionId: null,
+  });
+  assert.equal(unlinked.status, 200);
+  assert.equal(unlinked.body.positionId, null);
+  assert.equal(
+    (
+      await request("/org/grades", "POST", {
+        code: "G-03",
+        name: "Sai thứ tự",
+        rank: 0,
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/org/grades", "POST", {
+        code: "G-04",
+        name: "Thứ tự dạng chuỗi",
+        rank: "2",
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/org/grades", "POST", {
+        code: "G-05",
+        name: "Chức danh không tồn tại",
+        positionId: "00000000-0000-4000-8000-000000000000",
+      })
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(`/org/positions/${position.body.id}`, "DELETE", {
+        version: 1,
+      })
+    ).status,
+    404,
+  );
+});
+test("employee directory keeps versioned profiles, unique email and no hard delete", async () => {
+  const employee = await request("/employees", "POST", {
+    code: " emp-01 ",
+    fullName: "Nguyễn An",
+    email: "An.Nguyen@OneOps.vn",
+    jobTitle: "Developer",
+    departmentName: "Phòng Nhân sự",
+    teamName: "Nhóm Tuyển dụng",
+    startDate: "2026-01-15",
+  });
+  assert.equal(employee.status, 201, JSON.stringify(employee.body));
+  assert.equal(employee.body.code, "emp-01");
+  assert.equal(employee.body.email, "An.Nguyen@OneOps.vn");
+  assert.equal(employee.body.startDate, "2026-01-15");
+  assert.equal(employee.body.status, "ACTIVE");
+  assert.equal(employee.body.version, 1);
+  assert.equal(
+    (
+      await request("/employees", "POST", {
+        code: "EMP-01",
+        fullName: "Trùng mã",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request("/employees", "POST", {
+        code: "EMP-02",
+        fullName: "Trùng email",
+        email: "an.nguyen@oneops.vn",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request("/employees", "POST", {
+        code: "EMP-03",
+        fullName: "Email sai",
+        email: "khong-phai-email",
+      })
+    ).status,
+    400,
+  );
+  const noEmail = await request("/employees", "POST", {
+    code: "EMP-04",
+    fullName: "Lê Bình",
+  });
+  const otherNoEmail = await request("/employees", "POST", {
+    code: "EMP-05",
+    fullName: "Trần Chi",
+  });
+  assert.equal(noEmail.status, 201, JSON.stringify(noEmail.body));
+  assert.equal(otherNoEmail.status, 201, JSON.stringify(otherNoEmail.body));
+  assert.equal(noEmail.body.email, "");
+  const renamed = await request(`/employees/${employee.body.id}`, "PATCH", {
+    version: 1,
+    fullName: "Nguyễn An Bình",
+  });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.body.fullName, "Nguyễn An Bình");
+  assert.equal(renamed.body.jobTitle, "Developer");
+  assert.equal(renamed.body.version, 2);
+  assert.equal(
+    (
+      await request(`/employees/${employee.body.id}`, "PATCH", {
+        version: 1,
+        fullName: "Ghi đè cũ",
+      })
+    ).status,
+    409,
+  );
+  const left = await request(`/employees/${employee.body.id}`, "PATCH", {
+    version: 2,
+    status: "INACTIVE",
+  });
+  assert.equal(left.status, 200);
+  assert.equal(left.body.status, "INACTIVE");
+  assert.equal((await request("/employees?status=INACTIVE")).body.total, 1);
+  assert.equal((await request("/employees?q=chuyên")).body.total, 0);
+  assert.equal((await request("/employees?q=developer")).body.total, 1);
+  assert.equal(
+    (await request(`/employees/${employee.body.id}`, "DELETE", { version: 3 }))
+      .status,
+    404,
+  );
+});
+test("accounts keep roles, access history and the last manager guard", async () => {
+  const manager = await request(`/accounts/${adminId}`);
+  assert.equal(manager.status, 200, JSON.stringify(manager.body));
+  assert.equal(manager.body.username, "Quan.Ly");
+  assert.equal(manager.body.role, "MANAGER");
+  assert.equal(manager.body.isSystemAdmin, true);
+  assert.equal(manager.body.mustChangePassword, true);
+  assert.equal(manager.body.version, 1);
+  assert.equal("passwordHash" in manager.body, false);
+  assert.equal(
+    (
+      await request("/accounts", "POST", {
+        username: "quan.ly",
+        displayName: "Trùng tên",
+        password: "mat-khau-02",
+        actorName: "Quản trị viên",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request("/accounts", "POST", {
+        username: "nhan.vien",
+        displayName: "Trùng email",
+        email: "quan.ly@oneops.vn",
+        password: "mat-khau-02",
+        actorName: "Quản trị viên",
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request("/accounts", "POST", {
+        username: "thieu.mat.khau",
+        displayName: "Mật khẩu ngắn",
+        password: "123",
+        actorName: "Quản trị viên",
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/accounts", "POST", {
+        username: "sai.quyen",
+        displayName: "Admin không phải quản lý",
+        role: "EMPLOYEE",
+        isSystemAdmin: true,
+        password: "mat-khau-03",
+        actorName: "Quản trị viên",
+      })
+    ).status,
+    422,
+  );
+  const employee = await request("/accounts", "POST", {
+    username: "nhan.vien",
+    displayName: "Đỗ Nhân Viên",
+    password: "mat-khau-04",
+    actorName: "Quản trị viên",
+  });
+  assert.equal(employee.status, 201, JSON.stringify(employee.body));
+  assert.equal(employee.body.role, "EMPLOYEE");
+  const renamed = await request(`/accounts/${employee.body.id}`, "PATCH", {
+    version: 1,
+    displayName: "Đỗ Nhân Viên B",
+  });
+  assert.equal(renamed.status, 200);
+  assert.equal(renamed.body.displayName, "Đỗ Nhân Viên B");
+  assert.equal(renamed.body.role, "EMPLOYEE");
+  assert.equal(renamed.body.status, "ACTIVE");
+  assert.equal(
+    (
+      await request(`/accounts/${manager.body.id}/access`, "POST", {
+        role: "EMPLOYEE",
+        actorName: "Quản trị viên",
+        reason: "Hạ quyền quản lý cuối cùng",
+        version: 1,
+      })
+    ).status,
+    422,
+  );
+  const promoted = await request(
+    `/accounts/${employee.body.id}/access`,
+    "POST",
+    {
+      role: "MANAGER",
+      actorName: "Quản trị viên",
+      reason: "Bổ nhiệm quản lý",
+      version: 2,
+    },
+  );
+  assert.equal(promoted.status, 200, JSON.stringify(promoted.body));
+  assert.equal(promoted.body.role, "MANAGER");
+  const granted = await request(
+    `/accounts/${employee.body.id}/access`,
+    "POST",
+    {
+      isSystemAdmin: true,
+      actorName: "Quản trị viên",
+      reason: "Cấp quyền quản trị hệ thống",
+      version: 3,
+    },
+  );
+  assert.equal(granted.status, 200, JSON.stringify(granted.body));
+  assert.equal(granted.body.isSystemAdmin, true);
+  // Quản trị vừa được cấp quyền tiếp quản các thao tác, để phép hạ quyền
+  // không tự tước quyền của chính phiên đang gọi.
+  const promotedSignIn = await signIn("nhan.vien", "mat-khau-04");
+  assert.equal(promotedSignIn.status, 200, JSON.stringify(promotedSignIn.body));
+  cookie = promotedSignIn.cookie;
+  const demoted = await request(`/accounts/${manager.body.id}/access`, "POST", {
+    role: "EMPLOYEE",
+    isSystemAdmin: false,
+    actorName: "Quản trị viên",
+    reason: "Chuyển sang nhân viên",
+    version: 1,
+  });
+  assert.equal(demoted.status, 200, JSON.stringify(demoted.body));
+  assert.equal(demoted.body.role, "EMPLOYEE");
+  assert.equal(demoted.body.isSystemAdmin, false);
+  assert.equal(
+    (
+      await request(`/accounts/${manager.body.id}/access`, "POST", {
+        isSystemAdmin: true,
+        actorName: "Quản trị viên",
+        version: 1,
+      })
+    ).status,
+    422,
+  );
+  assert.equal(
+    (
+      await request(`/accounts/${employee.body.id}/access`, "POST", {
+        isSystemAdmin: false,
+        actorName: "Quản trị viên",
+        version: 4,
+      })
+    ).status,
+    422,
+  );
+  const locked = await request(`/accounts/${employee.body.id}/access`, "POST", {
+    status: "LOCKED",
+    lockedReason: "Thử khóa quản lý cuối cùng",
+    actorName: "Quản trị viên",
+    version: 4,
+  });
+  assert.equal(locked.status, 422);
+  const password = await request(
+    `/accounts/${employee.body.id}/password`,
+    "POST",
+    {
+      password: "mat-khau-moi",
+      actorName: "Quản trị viên",
+      version: 4,
+    },
+  );
+  assert.equal(password.status, 200, JSON.stringify(password.body));
+  assert.equal(password.body.mustChangePassword, true);
+  assert.equal(password.body.version, 5);
+  assert.equal(
+    (
+      await request(`/accounts/${employee.body.id}/password`, "POST", {
+        password: "mat-khau-moi-2",
+        actorName: "Quản trị viên",
+        version: 1,
+      })
+    ).status,
+    409,
+  );
+  const history = await request(`/accounts/${employee.body.id}/history`);
+  assert.equal(history.status, 200);
+  const kinds = history.body.items.map((item) => item.kind);
+  assert.deepEqual(kinds.sort(), ["ADMIN", "PASSWORD", "ROLE", "ROLE"]);
+  assert.equal((await request("/accounts?role=MANAGER")).body.total, 1);
+  assert.equal((await request("/accounts?q=nhan.vien")).body.total, 1);
+  assert.equal(
+    (await request(`/accounts/${employee.body.id}`, "DELETE", {})).status,
+    404,
+  );
+});
+test("permission matrix keeps defaults, tenant overrides and versioned writes", async () => {
+  const SELF = "tenant-system/access-control/roles-permissions";
+  const TASKS = "work-management/work/tasks";
+  const rowOf = (payload, featureKey, role) =>
+    payload.items.find(
+      (item) => item.featureKey === featureKey && item.role === role,
+    );
+  const actionsOf = (payload, featureKey) =>
+    payload.items.find((item) => item.featureKey === featureKey)?.actions;
+  const adminCookie = cookie;
+
+  const mine = await request("/permissions/me");
+  assert.equal(mine.status, 200, JSON.stringify(mine.body));
+  assert.equal(mine.body.role, "MANAGER");
+  assert.equal(mine.body.canManage, true);
+  assert.ok(
+    mine.body.items.every((item) => item.actions.includes("manage")),
+    "quản trị hệ thống phải có đủ quyền",
+  );
+
+  const matrix = await request("/permissions");
+  assert.equal(matrix.status, 200, JSON.stringify(matrix.body));
+  assert.deepEqual(matrix.body.roles, ["EMPLOYEE", "MANAGER"]);
+  const featureKeys = new Set(matrix.body.items.map((item) => item.featureKey));
+  assert.equal(matrix.body.items.length, featureKeys.size * 2);
+  assert.ok(
+    matrix.body.items.every((item) => item.isDefault && item.version === 0),
+    "ma trận mới phải ở trạng thái mặc định",
+  );
+  assert.deepEqual(rowOf(matrix.body, SELF, "MANAGER").actions, ["view"]);
+  assert.deepEqual(rowOf(matrix.body, SELF, "EMPLOYEE").actions, []);
+  assert.deepEqual(rowOf(matrix.body, TASKS, "EMPLOYEE").actions, ["view"]);
+  assert.deepEqual(rowOf(matrix.body, TASKS, "MANAGER").actions, [
+    "view",
+    "create",
+    "update",
+    "delete",
+    "approve",
+  ]);
+
+  // Invalid payloads are refused before anything is written.
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          { featureKey: "khong/co", role: "EMPLOYEE", actions: [], version: 0 },
+        ],
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          {
+            featureKey: SELF,
+            role: "EMPLOYEE",
+            actions: ["manage"],
+            version: 0,
+          },
+        ],
+      })
+    ).status,
+    422,
+  );
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          { featureKey: SELF, role: "EMPLOYEE", actions: [], version: 0 },
+          {
+            featureKey: SELF,
+            role: "EMPLOYEE",
+            actions: ["view"],
+            version: 0,
+          },
+        ],
+      })
+    ).status,
+    422,
+  );
+
+  const createdEmployee = await request("/accounts", "POST", {
+    username: "nhan.vien",
+    displayName: "Đỗ Nhân Viên",
+    password: "mat-khau-04",
+    actorName: "Quản trị viên",
+  });
+  assert.equal(
+    createdEmployee.status,
+    201,
+    JSON.stringify(createdEmployee.body),
+  );
+  const employeeSignIn = await signIn("nhan.vien", "mat-khau-04");
+  assert.equal(employeeSignIn.status, 200, JSON.stringify(employeeSignIn.body));
+  cookie = employeeSignIn.cookie;
+  const employeeMine = await request("/permissions/me");
+  assert.equal(employeeMine.status, 200, JSON.stringify(employeeMine.body));
+  assert.equal(employeeMine.body.canManage, false);
+  assert.deepEqual(actionsOf(employeeMine.body, SELF), []);
+  assert.deepEqual(actionsOf(employeeMine.body, TASKS), ["view"]);
+  assert.ok(
+    employeeMine.body.items.every((item) => !item.actions.includes("manage")),
+    "nhân viên không bao giờ nhận quyền quản trị ma trận",
+  );
+  assert.equal((await request("/permissions")).status, 403);
+  assert.equal((await request("/permissions/history")).status, 403);
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          { featureKey: SELF, role: "EMPLOYEE", actions: ["view"], version: 0 },
+        ],
+      })
+    ).status,
+    403,
+  );
+
+  cookie = adminCookie;
+  const granted = await request("/permissions", "PUT", {
+    items: [
+      { featureKey: SELF, role: "EMPLOYEE", actions: ["view"], version: 0 },
+    ],
+    reason: "Cho nhân viên xem ma trận",
+  });
+  assert.equal(granted.status, 200, JSON.stringify(granted.body));
+  const grantedRow = rowOf(granted.body, SELF, "EMPLOYEE");
+  assert.deepEqual(grantedRow.actions, ["view"]);
+  assert.equal(grantedRow.version, 1);
+  assert.equal(grantedRow.isDefault, false);
+  assert.deepEqual(rowOf(granted.body, SELF, "MANAGER").actions, ["view"]);
+
+  const unchanged = await request("/permissions", "PUT", {
+    items: [
+      { featureKey: SELF, role: "EMPLOYEE", actions: ["view"], version: 1 },
+    ],
+  });
+  assert.equal(unchanged.status, 200, JSON.stringify(unchanged.body));
+  assert.equal(rowOf(unchanged.body, SELF, "EMPLOYEE").version, 1);
+  const history = await request("/permissions/history");
+  assert.equal(history.status, 200, JSON.stringify(history.body));
+  assert.equal(history.body.items.length, 1);
+  assert.deepEqual(history.body.items[0].fromActions, []);
+  assert.deepEqual(history.body.items[0].toActions, ["view"]);
+  assert.equal(history.body.items[0].reason, "Cho nhân viên xem ma trận");
+  assert.equal(history.body.items[0].actorName, ADMIN.displayName);
+
+  cookie = employeeSignIn.cookie;
+  assert.equal((await request("/permissions")).status, 200);
+  assert.equal((await request("/permissions/history")).status, 200);
+  cookie = adminCookie;
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          {
+            featureKey: SELF,
+            role: "EMPLOYEE",
+            actions: ["view", "create"],
+            version: 0,
+          },
+        ],
+      })
+    ).status,
+    409,
+  );
+  const revoked = await request("/permissions", "PUT", {
+    items: [{ featureKey: SELF, role: "EMPLOYEE", actions: [], version: 1 }],
+    reason: "Thu hồi quyền xem ma trận",
+  });
+  assert.equal(revoked.status, 200, JSON.stringify(revoked.body));
+  assert.equal(rowOf(revoked.body, SELF, "EMPLOYEE").version, 2);
+  assert.deepEqual(rowOf(revoked.body, SELF, "EMPLOYEE").actions, []);
+  assert.equal((await request("/permissions/history")).body.items.length, 2);
+  cookie = employeeSignIn.cookie;
+  assert.equal((await request("/permissions")).status, 403);
+
+  cookie = adminCookie;
+  const manager = await request("/accounts", "POST", {
+    username: "quan.ly.2",
+    displayName: "Lê Quản Lý",
+    role: "MANAGER",
+    password: "mat-khau-05",
+    actorName: "Quản trị viên",
+  });
+  assert.equal(manager.status, 201, JSON.stringify(manager.body));
+  const managerSignIn = await signIn("quan.ly.2", "mat-khau-05");
+  assert.equal(managerSignIn.status, 200, JSON.stringify(managerSignIn.body));
+  cookie = managerSignIn.cookie;
+  const managerMine = await request("/permissions/me");
+  assert.equal(managerMine.status, 200, JSON.stringify(managerMine.body));
+  assert.equal(managerMine.body.canManage, false);
+  assert.deepEqual(actionsOf(managerMine.body, SELF), ["view"]);
+  assert.equal((await request("/permissions")).status, 200);
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          { featureKey: SELF, role: "EMPLOYEE", actions: ["view"], version: 0 },
+        ],
+      })
+    ).status,
+    403,
+  );
+  cookie = adminCookie;
+});
+test("checklog records administration changes once and stays append-only", async () => {
+  const SELF = "tenant-system/access-control/roles-permissions";
+  const TASKS = "work-management/work/tasks";
+  const adminCookie = cookie;
+
+  const empty = await request("/checklog");
+  assert.equal(empty.status, 200, JSON.stringify(empty.body));
+  assert.deepEqual(empty.body, {
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: 25,
+  });
+  assert.deepEqual((await request("/checklog/facets")).body, {
+    features: [],
+    actions: [],
+  });
+
+  // The matrix feature writes through its audit port, so the entry commits
+  // with the change itself.
+  const granted = await request("/permissions", "PUT", {
+    items: [
+      { featureKey: SELF, role: "EMPLOYEE", actions: ["view"], version: 0 },
+    ],
+    reason: "Cho nhân viên xem ma trận",
+  });
+  assert.equal(granted.status, 200, JSON.stringify(granted.body));
+
+  const listed = await request("/checklog");
+  assert.equal(listed.status, 200, JSON.stringify(listed.body));
+  assert.equal(listed.body.total, 1);
+  const entry = listed.body.items[0];
+  assert.equal(entry.featureKey, SELF);
+  assert.equal(entry.action, "PERMISSION_CHANGE");
+  assert.equal(entry.targetType, "RolePermission");
+  assert.equal(entry.targetId, "EMPLOYEE");
+  assert.deepEqual(entry.before, { actions: [] });
+  assert.deepEqual(entry.after, { actions: ["view"] });
+  assert.equal(entry.reason, "Cho nhân viên xem ma trận");
+  assert.equal(entry.actorName, ADMIN.displayName);
+  assert.equal(entry.actorRole, "MANAGER");
+  assert.equal(entry.actorAccountId, adminId);
+  assert.equal(entry.isSystemAdmin, true);
+  assert.equal(entry.isOutOfScopeOverride, false);
+  assert.equal(entry.result, "SUCCESS");
+  assert.ok(!Number.isNaN(Date.parse(entry.createdAt)));
+
+  const detail = await request(`/checklog/${entry.id}`);
+  assert.equal(detail.status, 200, JSON.stringify(detail.body));
+  assert.deepEqual(detail.body, entry);
+  assert.deepEqual((await request("/checklog/facets")).body, {
+    features: [{ key: SELF, count: 1 }],
+    actions: [{ key: "PERMISSION_CHANGE", count: 1 }],
+  });
+
+  // One entry per changed cell: the unchanged MANAGER row writes nothing.
+  const batch = await request("/permissions", "PUT", {
+    items: [
+      {
+        featureKey: TASKS,
+        role: "EMPLOYEE",
+        actions: ["view", "create"],
+        version: 0,
+      },
+      { featureKey: SELF, role: "MANAGER", actions: ["view"], version: 0 },
+    ],
+    reason: "Mở quyền tạo công việc",
+  });
+  assert.equal(batch.status, 200, JSON.stringify(batch.body));
+  const afterBatch = await request("/checklog");
+  assert.equal(afterBatch.body.total, 2);
+  assert.equal(afterBatch.body.items[0].featureKey, TASKS);
+  assert.equal(afterBatch.body.items[0].targetId, "EMPLOYEE");
+  assert.deepEqual((await request("/checklog/facets")).body, {
+    features: [
+      { key: SELF, count: 1 },
+      { key: TASKS, count: 1 },
+    ],
+    actions: [{ key: "PERMISSION_CHANGE", count: 2 }],
+  });
+
+  // A refused write leaves no trace to roll back.
+  assert.equal(
+    (
+      await request("/permissions", "PUT", {
+        items: [
+          {
+            featureKey: SELF,
+            role: "EMPLOYEE",
+            actions: ["view", "create"],
+            version: 0,
+          },
+        ],
+      })
+    ).status,
+    409,
+  );
+  assert.equal((await request("/checklog")).body.total, 2);
+
+  const queries = {
+    "/checklog?action=PERMISSION_CHANGE": 2,
+    "/checklog?action=OTHER_ACTION": 0,
+    [`/checklog?feature=${TASKS}`]: 1,
+    "/checklog?q=EMPLOYEE": 2,
+    "/checklog?q=khong-co-gi": 0,
+    "/checklog?override=true": 0,
+    "/checklog?override=false": 2,
+    "/checklog?result=SUCCESS": 2,
+    "/checklog?result=DENIED": 0,
+    "/checklog?from=2020-01-01&to=2030-12-31": 2,
+    "/checklog?from=2030-01-01": 0,
+  };
+  for (const [route, expected] of Object.entries(queries)) {
+    const response = await request(route);
+    assert.equal(
+      response.status,
+      200,
+      `${route}: ${JSON.stringify(response.body)}`,
+    );
+    assert.equal(response.body.total, expected, route);
+  }
+  const paged = await request("/checklog?page=1&pageSize=1");
+  assert.equal(paged.body.items.length, 1);
+  assert.equal(paged.body.total, 2);
+  assert.equal(paged.body.pageSize, 1);
+  const beyond = await request("/checklog?page=2&pageSize=25");
+  assert.equal(beyond.body.total, 2);
+  assert.deepEqual(beyond.body.items, []);
+
+  // The query is strict, and the surface has no write route at all.
+  for (const route of [
+    "/checklog?unknown=1",
+    "/checklog?pageSize=500",
+    "/checklog?result=OTHER",
+    "/checklog?from=2026-13-01",
+  ])
+    assert.equal((await request(route)).status, 400, route);
+  assert.equal((await request("/checklog/khong-phai-uuid")).status, 400);
+  assert.equal(
+    (await request("/checklog/00000000-0000-4000-8000-000000000000")).status,
+    404,
+  );
+  assert.equal(
+    (await request(`/checklog/${entry.id}`, "PATCH", { summary: "Sửa" }))
+      .status,
+    404,
+  );
+  assert.equal((await request(`/checklog/${entry.id}`, "DELETE")).status, 404);
+
+  // Producers never have to remember to redact: the sink strips secret keys.
+  const { redact, REDACTED } =
+    await import("../apps/api/dist/features/tenant-system/checklog/audit-redaction.js");
+  assert.deepEqual(
+    redact({ password: "x", nested: { accessToken: "y" }, safe: 1 }),
+    { password: REDACTED, nested: { accessToken: REDACTED }, safe: 1 },
+  );
+
+  const createdEmployee = await request("/accounts", "POST", {
+    username: "nhan.vien.log",
+    displayName: "Đỗ Nhân Viên",
+    password: "mat-khau-06",
+    actorName: "Quản trị viên",
+  });
+  assert.equal(
+    createdEmployee.status,
+    201,
+    JSON.stringify(createdEmployee.body),
+  );
+  const employeeSignIn = await signIn("nhan.vien.log", "mat-khau-06");
+  assert.equal(employeeSignIn.status, 200, JSON.stringify(employeeSignIn.body));
+  cookie = employeeSignIn.cookie;
+  assert.equal((await request("/checklog")).status, 403);
+  assert.equal((await request("/checklog/facets")).status, 403);
+  assert.equal((await request(`/checklog/${entry.id}`)).status, 403);
+  cookie = adminCookie;
 });
 test("duplicate codes conflict; PATCH keeps omitted fields and stale writes are rejected", async () => {
   const created = (
@@ -88,7 +1008,7 @@ test("duplicate codes conflict; PATCH keeps omitted fields and stale writes are 
   );
   const saved = await request("/tasks/" + created.id, "PATCH", {
     version: 1,
-    status: "Đang thực hiện",
+    name: "Công việc kiểm thử (đã sửa)",
   });
   assert.equal(saved.status, 200);
   assert.equal(saved.body.note, "Mô tả giữ nguyên");
@@ -98,7 +1018,7 @@ test("duplicate codes conflict; PATCH keeps omitted fields and stale writes are 
     (
       await request("/tasks/" + created.id, "PATCH", {
         version: 1,
-        status: "Hoàn thành",
+        name: "Ghi đè bằng phiên bản cũ",
       })
     ).status,
     409,
@@ -112,10 +1032,11 @@ test("duplicate codes conflict; PATCH keeps omitted fields and stale writes are 
     200,
   );
 });
-test("strict domain validation rejects foreign fields, invalid status, dates and progress", async () => {
+test("strict domain validation rejects foreign fields, direct status writes, invalid dates and progress", async () => {
   for (const patch of [
     { name: " " },
     { status: "Không hợp lệ" },
+    { status: "Đang làm" },
     { date: "2026-02-30" },
     { fields: { progress: 101 } },
     { fields: { beneficiary: "Không phải domain công việc" } },
@@ -172,28 +1093,34 @@ test("strict domain validation rejects foreign fields, invalid status, dates and
     400,
   );
 });
-test("checklists and comments persist as structured task data", async () => {
+test("checklists persist on tasks and comments live in their own feature", async () => {
   const task = (await request("/tasks", "POST", input())).body;
   const id = crypto.randomUUID();
   const result = await request("/tasks/" + task.id, "PATCH", {
     version: 1,
     fields: {
       checklist: [{ id, title: "Kiểm tra bàn giao", done: true }],
-      comments: [
-        {
-          id: crypto.randomUUID(),
-          text: "Đã xác nhận",
-          author: "Người kiểm thử",
-          createdAt: new Date().toISOString(),
-        },
-      ],
     },
   });
   assert.equal(result.status, 200, JSON.stringify(result.body));
   assert.equal(result.body.fields.checklist[0].done, true);
+
+  const comment = await request("/task-comments", "POST", {
+    taskId: task.id,
+    body: "Đã xác nhận",
+    mentions: ["Minh"],
+  });
+  assert.equal(comment.status, 201, JSON.stringify(comment.body));
+  assert.equal(comment.body.author, ADMIN.displayName);
+  assert.deepEqual(comment.body.mentions, ["Minh"]);
+  const list = await request("/task-comments?taskId=" + task.id);
+  assert.equal(list.status, 200, JSON.stringify(list.body));
+  assert.equal(list.body.total, 1);
+  assert.equal(list.body.items[0].body, "Đã xác nhận");
   assert.equal(
-    (await request("/tasks/" + task.id)).body.fields.comments[0].text,
-    "Đã xác nhận",
+    (await request("/task-comments/counts?taskIds=" + task.id)).body.items[0]
+      .count,
+    1,
   );
 });
 test("pagination, search, status and assignee filters stay within their domain", async () => {
@@ -206,16 +1133,18 @@ test("pagination, search, status and assignee filters stay within their domain",
       assignee: "An",
     }),
   );
-  await request(
-    "/tasks",
-    "POST",
-    input("tasks", {
-      code: "TASK-B",
-      name: "Kiểm thử",
-      status: "Hoàn thành",
-      assignee: "Bình",
-    }),
-  );
+  const finished = (
+    await request(
+      "/tasks",
+      "POST",
+      input("tasks", {
+        code: "TASK-B",
+        name: "Kiểm thử",
+        assignee: ADMIN.displayName,
+      }),
+    )
+  ).body;
+  await completeTask(finished);
   assert.equal(
     (await request("/tasks?page=1&pageSize=1")).body.items.length,
     1,
@@ -235,30 +1164,23 @@ test("pagination, search, status and assignee filters stay within their domain",
 test("only one concurrent write can use the same task version", async () => {
   const task = (await request("/tasks", "POST", input())).body;
   const results = await Promise.all([
-    request("/tasks/" + task.id, "PATCH", { version: 1, status: "Hoàn thành" }),
-    request("/tasks/" + task.id, "PATCH", {
-      version: 1,
-      status: "Chờ phản hồi",
-    }),
+    request("/tasks/" + task.id, "PATCH", { version: 1, name: "Nhánh A" }),
+    request("/tasks/" + task.id, "PATCH", { version: 1, name: "Nhánh B" }),
   ]);
   assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
 });
 test("workspace aggregates every task page and real project/request/calendar data", async () => {
-  for (let i = 0; i < 101; i++)
-    assert.equal(
-      (
-        await request(
-          "/tasks",
-          "POST",
-          input("tasks", {
-            code: "TASK-" + i,
-            date: "2000-01-01",
-            status: i < 50 ? "Hoàn thành" : "Cần làm",
-          }),
-        )
-      ).status,
-      201,
+  const created = [];
+  for (let i = 0; i < 101; i++) {
+    const task = await request(
+      "/tasks",
+      "POST",
+      input("tasks", { code: "TASK-" + i, date: "2000-01-01" }),
     );
+    assert.equal(task.status, 201, JSON.stringify(task.body));
+    created.push(task.body);
+  }
+  for (const task of created.slice(0, 50)) await completeTask(task);
   await request("/projects", "POST", input("project-spaces"));
   await request("/requests", "POST", input("tickets-approvals"));
   const date = new Intl.DateTimeFormat("en-CA", {
@@ -287,4 +1209,913 @@ test("records survive a Nest restart; former legal routes no longer exist", asyn
   assert.equal((await request("/manage-information")).status, 404);
   assert.equal((await request("/teams")).status, 404);
   assert.equal((await request("/case-transfers", "POST", {})).status, 404);
+});
+test("task, comment, message and meeting events create notifications with navigation links", async () => {
+  const recipient = "Lan";
+  const inbox = () =>
+    request(`/notifications?recipient=${encodeURIComponent(recipient)}`);
+  const task = (
+    await request("/tasks", "POST", input("tasks", { assignee: recipient }))
+  ).body;
+  let list = await waitFor(inbox, (result) => result.body.total >= 1);
+  assert.equal(list.body.items[0].source, "task");
+  assert.equal(list.body.items[0].sourceId, task.id);
+  assert.equal(
+    list.body.items[0].link,
+    `/work-management/tasks?focus=${task.id}`,
+  );
+  assert.equal(list.body.unread, 1);
+
+  // A manager move is the only status change that notifies the assignee.
+  await transition(task, "Hoãn lại", { reason: "Khách hàng tạm dừng" });
+  list = await waitFor(inbox, (result) =>
+    result.body.items.some(
+      (item) => item.source === "task" && item.body.includes("Hoãn lại"),
+    ),
+  );
+  assert.ok(
+    list.body.items.some(
+      (item) => item.source === "task" && item.body.includes("Hoãn lại"),
+    ),
+  );
+
+  const comment = await request("/task-comments", "POST", {
+    taskId: task.id,
+    body: "Đã xong phần API",
+  });
+  assert.equal(comment.status, 201, JSON.stringify(comment.body));
+  list = await waitFor(inbox, (result) =>
+    result.body.items.some(
+      (item) =>
+        item.source === "comment" && item.body.includes("Đã xong phần API"),
+    ),
+  );
+  assert.ok(
+    list.body.items.some(
+      (item) =>
+        item.source === "comment" &&
+        item.body.includes(ADMIN.displayName) &&
+        item.body.includes("Đã xong phần API"),
+    ),
+  );
+
+  const thread = (
+    await request(
+      "/messages",
+      "POST",
+      input("internal-chat", {
+        assignee: recipient,
+        fields: { participants: "Lan, Minh" },
+      }),
+    )
+  ).body;
+  list = await waitFor(inbox, (result) => result.body.total >= 4);
+  assert.ok(
+    list.body.items.some(
+      (item) => item.source === "message" && item.sourceId === thread.id,
+    ),
+  );
+
+  const meeting = (
+    await request(
+      "/calendar",
+      "POST",
+      input("calendar", {
+        assignee: recipient,
+        fields: {
+          kind: "Cuộc họp",
+          startTime: "09:00",
+          endTime: "10:00",
+          attendees: "Lan, Minh",
+        },
+      }),
+    )
+  ).body;
+  list = await waitFor(inbox, (result) => result.body.total >= 5);
+  assert.ok(
+    list.body.items.some(
+      (item) => item.source === "meeting" && item.sourceId === meeting.id,
+    ),
+  );
+
+  const notification = list.body.items[0];
+  const read = await request(`/notifications/${notification.id}/read`, "PATCH");
+  assert.equal(read.status, 200);
+  assert.ok(read.body.readAt);
+  assert.equal(
+    (await request(`/notifications/${notification.id}/read`, "PATCH")).status,
+    200,
+  );
+  const all = await request("/notifications/read-all", "PATCH", { recipient });
+  assert.equal(all.status, 200);
+  assert.equal(
+    (
+      await request(
+        `/notifications?recipient=${encodeURIComponent(recipient)}&unread=true`,
+      )
+    ).body.total,
+    0,
+  );
+
+  // Deleting the source task soft-deletes linked notifications (hidden from UI, preserved in DB)
+  const taskNotification = list.body.items.find(
+    (item) => item.sourceId === task.id,
+  );
+  assert.ok(taskNotification);
+  const currentTask = (await request(`/tasks/${task.id}`)).body;
+  const deleteTask = await request(`/tasks/${task.id}`, "DELETE", {
+    version: currentTask.version,
+  });
+  assert.equal(deleteTask.status, 200);
+  list = await waitFor(
+    inbox,
+    (result) => !result.body.items.some((item) => item.sourceId === task.id),
+  );
+  assert.equal(
+    list.body.items.some((item) => item.sourceId === task.id),
+    false,
+  );
+
+  // Verified: The notification record is retained in database for audit checks
+  const archived = await request(`/notifications/${taskNotification.id}`);
+  assert.equal(archived.status, 200);
+  assert.ok(archived.body.deletedAt);
+
+  // Direct DELETE /notifications/:id soft-deletes the notification
+  const remainingNotif = list.body.items[0];
+  if (remainingNotif) {
+    const delNotif = await request(
+      `/notifications/${remainingNotif.id}`,
+      "DELETE",
+    );
+    assert.equal(delNotif.status, 200);
+    assert.ok(delNotif.body.deletedAt);
+    const afterDel = await request(
+      `/notifications?recipient=${encodeURIComponent(recipient)}`,
+    );
+    assert.equal(
+      afterDel.body.items.some((item) => item.id === remainingNotif.id),
+      false,
+    );
+
+    // Verified: Retained in database with deletedAt timestamp
+    const checked = await request(`/notifications/${remainingNotif.id}`);
+    assert.equal(checked.status, 200);
+    assert.ok(checked.body.deletedAt);
+  }
+});
+test("notification stream pushes new notifications over SSE", async () => {
+  const controller = new AbortController();
+  const response = await fetch(
+    `${origin}/api/v1/notifications/stream?recipient=Lan`,
+    { signal: controller.signal, headers: { Cookie: cookie } },
+  );
+  assert.match(
+    response.headers.get("content-type") ?? "",
+    /text\/event-stream/,
+  );
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    const created = await request(
+      "/tasks",
+      "POST",
+      input("tasks", { assignee: "Lan" }),
+    );
+    assert.equal(created.status, 201);
+    let buffer = "";
+    while (!buffer.includes("event: notification\n")) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+    }
+    assert.match(buffer, /event: notification/);
+    assert.match(buffer, new RegExp(created.body.id));
+
+    // Deleting the task pushes notification_deleted over SSE
+    await request(`/tasks/${created.body.id}`, "DELETE", {
+      version: created.body.version,
+    });
+    while (!buffer.includes("event: notification_deleted")) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+    }
+    assert.match(buffer, /event: notification_deleted/);
+  } finally {
+    clearTimeout(timeout);
+    controller.abort();
+  }
+});
+test("tenant sessions sign in, slide, expire, change password and revoke", async () => {
+  const account = await request("/accounts", "POST", {
+    username: "Quan.Tri",
+    displayName: "Trần Quản Trị",
+    role: "MANAGER",
+    isSystemAdmin: true,
+    password: "mat-khau-01",
+    actorName: "Hệ thống",
+  });
+  assert.equal(account.status, 201, JSON.stringify(account.body));
+  const signIn = async (password) => {
+    const response = await fetch(`${origin}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "quan.tri", password }),
+    });
+    return {
+      status: response.status,
+      body: await response.json(),
+      cookie: (response.headers.get("set-cookie") ?? "").split(";")[0],
+    };
+  };
+  const wrong = await signIn("sai-mat-khau");
+  assert.equal(wrong.status, 401);
+  assert.equal(wrong.cookie, "");
+  const signed = await signIn("mat-khau-01");
+  assert.equal(signed.status, 200, JSON.stringify(signed.body));
+  assert.match(signed.cookie, /^oneops_session=/);
+  assert.equal(signed.body.actor.username, "Quan.Tri");
+  assert.equal(signed.body.actor.role, "MANAGER");
+  assert.equal(signed.body.actor.isSystemAdmin, true);
+  assert.equal(signed.body.actor.mustChangePassword, true);
+  assert.equal(signed.body.idleMinutes, 30);
+  const session = (cookie) =>
+    fetch(`${origin}/api/v1/auth/session`, {
+      headers: cookie ? { Cookie: cookie } : {},
+    }).then(async (response) => ({
+      status: response.status,
+      body: await response.json(),
+    }));
+  assert.equal((await session("")).status, 401);
+  assert.equal((await session("oneops_session=gia-mao")).status, 401);
+  const resumed = await session(signed.cookie);
+  assert.equal(resumed.status, 200, JSON.stringify(resumed.body));
+  assert.equal(resumed.body.actor.accountId, account.body.id);
+  const change = (cookie, body) =>
+    fetch(`${origin}/api/v1/auth/password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify(body),
+    }).then(async (response) => ({
+      status: response.status,
+      body: await response.json(),
+    }));
+  assert.equal(
+    (
+      await change(signed.cookie, {
+        currentPassword: "sai-mat-khau",
+        newPassword: "mat-khau-02",
+      })
+    ).status,
+    422,
+  );
+  const changed = await change(signed.cookie, {
+    currentPassword: "mat-khau-01",
+    newPassword: "mat-khau-02",
+  });
+  assert.equal(changed.status, 200, JSON.stringify(changed.body));
+  assert.equal((await signIn("mat-khau-01")).status, 401);
+  const next = await signIn("mat-khau-02");
+  assert.equal(next.status, 200, JSON.stringify(next.body));
+  assert.equal(next.body.actor.mustChangePassword, false);
+  const signedOut = await fetch(`${origin}/api/v1/auth/logout`, {
+    method: "POST",
+    headers: { Cookie: next.cookie },
+  });
+  assert.equal(signedOut.status, 200);
+  assert.equal((await session(next.cookie)).status, 401);
+  const third = await signIn("mat-khau-02");
+  assert.equal(third.status, 200);
+  const employee = await request("/accounts", "POST", {
+    username: "nhan.vien",
+    displayName: "Lê Nhân Viên",
+    password: "mat-khau-03",
+    actorName: "Hệ thống",
+  });
+  assert.equal(employee.status, 201, JSON.stringify(employee.body));
+  const employeeSignIn = async () => {
+    const response = await fetch(`${origin}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "nhan.vien", password: "mat-khau-03" }),
+    });
+    return {
+      status: response.status,
+      cookie: (response.headers.get("set-cookie") ?? "").split(";")[0],
+    };
+  };
+  const signedEmployee = await employeeSignIn();
+  assert.equal(signedEmployee.status, 200);
+  const locked = await request(`/accounts/${employee.body.id}/access`, "POST", {
+    status: "LOCKED",
+    lockedReason: "Tạm khóa để kiểm thử",
+    actorName: "Kiểm thử",
+    version: 1,
+  });
+  assert.equal(locked.status, 200, JSON.stringify(locked.body));
+  assert.equal((await session(signedEmployee.cookie)).status, 401);
+  assert.equal((await employeeSignIn()).status, 403);
+  assert.equal((await session(third.cookie)).status, 200);
+});
+test("task workflow owns every legal move and rejects the rest", async () => {
+  const rules = (await request("/task-workflow/rules")).body;
+  assert.deepEqual(rules.terminal, ["Hoàn thành", "Đã hủy"]);
+  assert.equal(
+    rules.transitions.find((rule) => rule.code === "TR-02").actor,
+    "ASSIGNEE",
+  );
+  assert.deepEqual(
+    rules.transitions
+      .filter((rule) => rule.reasonRequired)
+      .map((rule) => rule.code),
+    ["TR-05", "TR-06", "TR-08"],
+  );
+
+  const task = (await request("/tasks", "POST", input())).body;
+  const state = (await request(`/task-workflow/tasks/${task.id}/state`)).body;
+  assert.equal(state.task.status, "Cần làm");
+  assert.deepEqual(
+    state.allowed.map((move) => move.code),
+    // A manager may start, hold, or cancel a fresh task.
+    ["TR-02", "TR-06", "TR-08"],
+  );
+  assert.equal(state.pendingProposal, null);
+  assert.deepEqual(state.history, []);
+  assert.deepEqual(
+    (await request(`/task-workflow/allowed?taskIds=${task.id}`)).body.items[0]
+      .allowed,
+    state.allowed,
+  );
+
+  // Skipping a step and moving without the mandatory reason are both refused.
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${task.id}/transitions`, "POST", {
+        toStatus: "Hoàn thành",
+        version: 1,
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${task.id}/transitions`, "POST", {
+        toStatus: "Hoãn lại",
+        version: 1,
+      })
+    ).status,
+    422,
+  );
+
+  // Idempotency: the same key replays the move instead of recording twice.
+  const key = "workflow:test:0001";
+  const started = await request(
+    `/task-workflow/tasks/${task.id}/transitions`,
+    "POST",
+    { toStatus: "Đang làm", version: 1 },
+    { "Idempotency-Key": key },
+  );
+  assert.equal(started.status, 200, JSON.stringify(started.body));
+  assert.equal(started.body.task.status, "Đang làm");
+  const replay = await request(
+    `/task-workflow/tasks/${task.id}/transitions`,
+    "POST",
+    { toStatus: "Đang làm", version: 1 },
+    { "Idempotency-Key": key },
+  );
+  assert.equal(replay.status, 200, JSON.stringify(replay.body));
+  assert.equal(replay.body.task.version, 2);
+  assert.equal(
+    (await request(`/task-workflow/tasks/${task.id}/history`)).body.items
+      .length,
+    1,
+  );
+
+  const review = await transition(started.body.task, "Chờ kiểm tra");
+  const completed = await transition(review, "Hoàn thành");
+  assert.equal(completed.status, "Hoàn thành");
+  const terminal = (await request(`/task-workflow/tasks/${task.id}/state`))
+    .body;
+  assert.deepEqual(terminal.allowed, []);
+  assert.deepEqual(
+    terminal.history.map((row) => row.code),
+    ["TR-02", "TR-03", "TR-04"],
+  );
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${task.id}/transitions`, "POST", {
+        toStatus: "Cần làm",
+        version: completed.version,
+      })
+    ).status,
+    409,
+  );
+
+  // A task assigned to someone else only accepts manager moves.
+  const assigned = (
+    await request(
+      "/tasks",
+      "POST",
+      input("tasks", { code: "WORK-03", assignee: "Lan" }),
+    )
+  ).body;
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${assigned.id}/transitions`, "POST", {
+        toStatus: "Đang làm",
+        version: 1,
+      })
+    ).status,
+    403,
+  );
+
+  // Holding remembers where the task came from so TR-07 can restore it.
+  const held = (
+    await request("/tasks", "POST", input("tasks", { code: "WORK-02" }))
+  ).body;
+  await transition(held, "Hoãn lại", { reason: "Chờ khách hàng phản hồi" });
+  const afterHold = (await request(`/task-workflow/tasks/${held.id}/state`))
+    .body;
+  assert.equal(afterHold.task.status, "Hoãn lại");
+  assert.equal(afterHold.restoreStatus, "Cần làm");
+  assert.deepEqual(afterHold.allowed.map((move) => move.code).sort(), [
+    "TR-07",
+    "TR-08",
+  ]);
+  const restored = await transition(afterHold.task, "Cần làm");
+  assert.equal(restored.status, "Cần làm");
+});
+test("proposals wait for another manager and then drive the task status", async () => {
+  const task = (
+    await request("/tasks", "POST", input("tasks", { code: "WORK-10" }))
+  ).body;
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${task.id}/proposals`, "POST", {
+        kind: "DEADLINE",
+        reason: "Cần dời lịch bàn giao",
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${task.id}/proposals`, "POST", {
+        kind: "HOLD",
+        reason: "lý",
+      })
+    ).status,
+    400,
+  );
+  const proposal = await request(
+    `/task-workflow/tasks/${task.id}/proposals`,
+    "POST",
+    { kind: "HOLD", reason: "Chờ khách hàng phản hồi" },
+  );
+  assert.equal(proposal.status, 201, JSON.stringify(proposal.body));
+  assert.equal(proposal.body.status, "PENDING");
+  assert.equal(
+    (
+      await request(`/task-workflow/tasks/${task.id}/proposals`, "POST", {
+        kind: "CANCEL",
+        reason: "Một đề xuất khác đang chờ",
+      })
+    ).status,
+    409,
+  );
+
+  const pending = (await request(`/task-workflow/tasks/${task.id}/state`)).body;
+  assert.equal(pending.pendingProposal.id, proposal.body.id);
+  assert.equal(
+    (await request("/task-workflow/proposals?status=PENDING")).body.total,
+    1,
+  );
+  // The requester cannot decide their own proposal.
+  assert.equal(
+    (
+      await request(
+        `/task-workflow/proposals/${proposal.body.id}/decision`,
+        "POST",
+        { decision: "APPROVE" },
+      )
+    ).status,
+    403,
+  );
+
+  const deputy = await request("/accounts", "POST", {
+    username: "pho.quan.ly",
+    displayName: "Trần Phó Quản Lý",
+    employeeCode: "EMP-02",
+    role: "MANAGER",
+    password: "mat-khau-07",
+    actorName: "Hệ thống",
+  });
+  assert.equal(deputy.status, 201, JSON.stringify(deputy.body));
+  const adminCookie = cookie;
+  const deputySignIn = await signIn("pho.quan.ly", "mat-khau-07");
+  assert.equal(deputySignIn.status, 200, JSON.stringify(deputySignIn.body));
+  cookie = deputySignIn.cookie;
+
+  assert.equal(
+    (
+      await request(
+        `/task-workflow/proposals/${proposal.body.id}/decision`,
+        "POST",
+        { decision: "REJECT" },
+      )
+    ).status,
+    400,
+  );
+  const rejected = await request(
+    `/task-workflow/proposals/${proposal.body.id}/decision`,
+    "POST",
+    { decision: "REJECT", reason: "Chưa cần hoãn ở giai đoạn này" },
+  );
+  assert.equal(rejected.status, 200, JSON.stringify(rejected.body));
+  assert.equal(rejected.body.status, "REJECTED");
+  assert.equal(rejected.body.decidedByName, "Trần Phó Quản Lý");
+  assert.equal(
+    (
+      await request(
+        `/task-workflow/proposals/${proposal.body.id}/decision`,
+        "POST",
+        { decision: "APPROVE" },
+      )
+    ).status,
+    409,
+  );
+
+  // An approved proposal performs the move and stays APPROVED, not auto-closed.
+  // The manager asks; the deputy answers, so nobody decides their own request.
+  cookie = adminCookie;
+  const cancel = await request(
+    `/task-workflow/tasks/${task.id}/proposals`,
+    "POST",
+    { kind: "CANCEL", reason: "Khách hàng đã dừng dự án" },
+  );
+  assert.equal(cancel.status, 201, JSON.stringify(cancel.body));
+  cookie = deputySignIn.cookie;
+  const approved = await request(
+    `/task-workflow/proposals/${cancel.body.id}/decision`,
+    "POST",
+    { decision: "APPROVE" },
+  );
+  assert.equal(approved.status, 200, JSON.stringify(approved.body));
+  assert.equal(approved.body.status, "APPROVED");
+  assert.equal(approved.body.decidedByName, "Trần Phó Quản Lý");
+  cookie = adminCookie;
+  const after = (await request(`/task-workflow/tasks/${task.id}/state`)).body;
+  assert.equal(after.task.status, "Đã hủy");
+  assert.equal(after.history.at(-1).code, "TR-08");
+  assert.equal(after.history.at(-1).reason, "Khách hàng đã dừng dự án");
+  assert.equal(after.pendingProposal, null);
+});
+test("milestones link tasks and the QA gate blocks completion until criteria pass", async () => {
+  const project = (await request("/projects", "POST", input("project-spaces")))
+    .body;
+  assert.equal(
+    (
+      await request("/milestones", "POST", {
+        projectId: project.id,
+        name: "Mốc bàn giao",
+        targetDate: "2026-12-31",
+        status: "COMPLETED",
+      })
+    ).status,
+    400,
+  );
+  const milestone = await request("/milestones", "POST", {
+    projectId: project.id,
+    name: "Mốc bàn giao",
+    description: "Bàn giao giai đoạn một",
+    targetDate: "2026-12-31",
+    status: "PLANNED",
+  });
+  assert.equal(milestone.status, 201, JSON.stringify(milestone.body));
+  assert.equal(milestone.body.status, "PLANNED");
+  assert.equal(milestone.body.itemCount, 0);
+  assert.equal(
+    (await request(`/milestones?projectId=${project.id}`)).body.total,
+    1,
+  );
+
+  const task = (
+    await request("/tasks", "POST", input("tasks", { name: "Bàn giao API" }))
+  ).body;
+  const linked = await request(
+    `/milestones/${milestone.body.id}/items`,
+    "POST",
+    { taskIds: [task.id] },
+  );
+  assert.equal(linked.status, 201, JSON.stringify(linked.body));
+  assert.equal(linked.body.itemCount, 1);
+  assert.equal(linked.body.items[0].taskId, task.id);
+  assert.equal(linked.body.completedCount, 0);
+  assert.equal(
+    (
+      await request(`/milestones/${milestone.body.id}/items`, "POST", {
+        taskIds: [crypto.randomUUID()],
+      })
+    ).status,
+    422,
+  );
+
+  const inProgress = await request(
+    `/milestones/${milestone.body.id}`,
+    "PATCH",
+    { status: "IN_PROGRESS", version: 1 },
+  );
+  assert.equal(inProgress.status, 200, JSON.stringify(inProgress.body));
+  assert.equal(inProgress.body.status, "IN_PROGRESS");
+  assert.equal(
+    (
+      await request(`/milestones/${milestone.body.id}`, "PATCH", {
+        status: "PLANNED",
+        version: 2,
+      })
+    ).status,
+    409,
+  );
+
+  const criterion = await request("/acceptance", "POST", {
+    taskId: task.id,
+    title: "API trả 200",
+    steps: "Gọi GET /api/v1/tasks",
+    expected: "HTTP 200",
+  });
+  assert.equal(criterion.status, 201, JSON.stringify(criterion.body));
+  assert.equal(criterion.body.mandatory, true);
+  const gate = (await request(`/acceptance?taskId=${task.id}`)).body;
+  assert.deepEqual(gate.gate, {
+    required: true,
+    passed: false,
+    blocking: ["API trả 200"],
+  });
+
+  const started = await transition(task, "Đang làm");
+  const review = await transition(started, "Chờ kiểm tra");
+  const blocked = await request(
+    `/task-workflow/tasks/${task.id}/transitions`,
+    "POST",
+    { toStatus: "Hoàn thành", version: review.version },
+  );
+  assert.equal(blocked.status, 422, JSON.stringify(blocked.body));
+  assert.match(JSON.stringify(blocked.body), /API trả 200/);
+
+  const result = await request(
+    `/acceptance/${criterion.body.id}/results`,
+    "POST",
+    {
+      outcome: "PASS",
+      note: "Đã chạy Postman",
+      evidence: [
+        { label: "Ảnh chụp", url: "https://example.test/evidence.png" },
+      ],
+    },
+  );
+  assert.equal(result.status, 201, JSON.stringify(result.body));
+  assert.equal(result.body.outcome, "PASS");
+  assert.equal(result.body.testedByName, ADMIN.displayName);
+  assert.equal(result.body.isOverride, true);
+  assert.equal(
+    (await request(`/acceptance/${criterion.body.id}/results`)).body.items
+      .length,
+    1,
+  );
+  assert.equal(
+    (await request(`/acceptance?taskId=${task.id}`)).body.gate.passed,
+    true,
+  );
+
+  const completed = await transition(review, "Hoàn thành");
+  assert.equal(completed.status, "Hoàn thành");
+  const progress = (await request(`/milestones/${milestone.body.id}`)).body;
+  assert.equal(progress.completedCount, 1);
+
+  const removed = await request(
+    `/milestones/${milestone.body.id}/items/${task.id}`,
+    "DELETE",
+  );
+  assert.equal(removed.status, 200, JSON.stringify(removed.body));
+  assert.equal(removed.body.itemCount, 0);
+  assert.equal(
+    (
+      await request(
+        `/milestones/${milestone.body.id}/items/${task.id}`,
+        "DELETE",
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(`/acceptance/${criterion.body.id}`, "DELETE", {
+        version: criterion.body.version,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request(`/acceptance?taskId=${task.id}`)).body.gate.required,
+    false,
+  );
+});
+test("timesheets keep 15 minute steps and route approvals by threshold", async () => {
+  const rules = (await request("/timesheets/rules")).body;
+  assert.equal(rules.minuteStep, 15);
+  assert.equal(rules.dayLimitMinutes, 720);
+  assert.equal(rules.dayThresholdMinutes, 480);
+
+  const period = (await request("/timesheets/periods", "POST", {})).body;
+  assert.equal(period.status, "OPEN");
+  assert.equal(period.employeeId, ADMIN.employeeCode);
+  assert.deepEqual(period.entries, []);
+  assert.equal(period.weekEnd > period.weekStart, true);
+  assert.equal(
+    (await request("/timesheets/periods", "POST", {})).body.id,
+    period.id,
+  );
+
+  const entry = await request(
+    `/timesheets/periods/${period.id}/entries`,
+    "POST",
+    {
+      workDate: period.weekStart,
+      minutes: 60,
+      note: "Phân tích yêu cầu",
+      billable: true,
+    },
+    { "Idempotency-Key": "timesheet:test:0001" },
+  );
+  assert.equal(entry.status, 201, JSON.stringify(entry.body));
+  assert.equal(entry.body.totalMinutes, 60);
+  assert.equal(entry.body.entries.length, 1);
+  const replay = await request(
+    `/timesheets/periods/${period.id}/entries`,
+    "POST",
+    { workDate: period.weekStart, minutes: 60, note: "Phân tích yêu cầu" },
+    { "Idempotency-Key": "timesheet:test:0001" },
+  );
+  assert.equal(replay.status, 201);
+  assert.equal(replay.body.entries.length, 1);
+  assert.equal(
+    (
+      await request(`/timesheets/periods/${period.id}/entries`, "POST", {
+        workDate: period.weekStart,
+        minutes: 20,
+      })
+    ).status,
+    422,
+  );
+  const nextDay = new Date(period.weekEnd + "T00:00:00.000Z");
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  assert.equal(
+    (
+      await request(`/timesheets/periods/${period.id}/entries`, "POST", {
+        workDate: nextDay.toISOString().slice(0, 10),
+        minutes: 60,
+      })
+    ).status,
+    422,
+  );
+
+  const entryId = entry.body.entries[0].id;
+  const patched = await request(
+    `/timesheets/periods/${period.id}/entries/${entryId}`,
+    "PATCH",
+    { minutes: 90, version: 1 },
+  );
+  assert.equal(patched.status, 200, JSON.stringify(patched.body));
+  assert.equal(patched.body.totalMinutes, 90);
+  const submitted = await request(
+    `/timesheets/periods/${period.id}/submit`,
+    "POST",
+  );
+  assert.equal(submitted.status, 200, JSON.stringify(submitted.body));
+  assert.equal(submitted.body.status, "APPROVED");
+  assert.equal(submitted.body.decidedByName, "Hệ thống");
+  assert.equal(submitted.body.overThreshold, false);
+  assert.equal(
+    (
+      await request(
+        `/timesheets/periods/${period.id}/entries/${entryId}`,
+        "PATCH",
+        { minutes: 120, version: 2 },
+      )
+    ).status,
+    409,
+  );
+  const adjusted = await request(
+    `/timesheets/entries/${entryId}/adjustments`,
+    "POST",
+    { deltaMinutes: -15, note: "Trừ giờ nghỉ trưa" },
+  );
+  assert.equal(adjusted.status, 201, JSON.stringify(adjusted.body));
+  assert.equal(adjusted.body.totalMinutes, 75);
+  assert.equal(adjusted.body.adjustments.length, 1);
+  assert.equal(
+    (
+      await request(`/timesheets/periods/${period.id}/decision`, "POST", {
+        decision: "APPROVE",
+      })
+    ).status,
+    409,
+  );
+
+  // Over-threshold weeks need a manager, and nobody approves their own sheet.
+  const employee = await request("/accounts", "POST", {
+    username: "nhan.vien.ts",
+    displayName: "Lê Nhân Viên",
+    employeeCode: "EMP-03",
+    password: "mat-khau-08",
+    actorName: "Hệ thống",
+  });
+  assert.equal(employee.status, 201, JSON.stringify(employee.body));
+  const adminCookie = cookie;
+  const employeeSignIn = await signIn("nhan.vien.ts", "mat-khau-08");
+  assert.equal(employeeSignIn.status, 200, JSON.stringify(employeeSignIn.body));
+  cookie = employeeSignIn.cookie;
+  const own = (await request("/timesheets/periods", "POST", {})).body;
+  assert.equal(own.employeeId, "EMP-03");
+  assert.equal(
+    (
+      await request(`/timesheets/periods/${own.id}/entries`, "POST", {
+        workDate: own.weekStart,
+        minutes: 540,
+      })
+    ).status,
+    422,
+  );
+  const longEntry = await request(
+    `/timesheets/periods/${own.id}/entries`,
+    "POST",
+    { workDate: own.weekStart, minutes: 540, note: "Chạy kiểm thử hồi quy" },
+  );
+  assert.equal(longEntry.status, 201, JSON.stringify(longEntry.body));
+  const sent = await request(`/timesheets/periods/${own.id}/submit`, "POST");
+  assert.equal(sent.status, 200, JSON.stringify(sent.body));
+  assert.equal(sent.body.status, "SUBMITTED");
+  assert.equal(sent.body.overThreshold, true);
+  assert.equal(
+    (
+      await request(`/timesheets/periods/${own.id}/decision`, "POST", {
+        decision: "APPROVE",
+      })
+    ).status,
+    403,
+  );
+
+  cookie = adminCookie;
+  assert.equal(
+    (
+      await request(`/timesheets/periods/${own.id}/decision`, "POST", {
+        decision: "REJECT",
+      })
+    ).status,
+    422,
+  );
+  const rejected = await request(
+    `/timesheets/periods/${own.id}/decision`,
+    "POST",
+    { decision: "REJECT", note: "Thiếu mô tả công việc cụ thể" },
+  );
+  assert.equal(rejected.status, 200, JSON.stringify(rejected.body));
+  assert.equal(rejected.body.status, "REJECTED");
+  assert.equal(
+    (await request("/timesheets/periods?employeeId=EMP-03")).body.total,
+    1,
+  );
+
+  // A rejected period reopens for the employee, who resubmits for approval.
+  cookie = employeeSignIn.cookie;
+  const dayTwo = new Date(own.weekStart + "T00:00:00.000Z");
+  dayTwo.setUTCDate(dayTwo.getUTCDate() + 1);
+  const complement = await request(
+    `/timesheets/periods/${own.id}/entries`,
+    "POST",
+    {
+      workDate: dayTwo.toISOString().slice(0, 10),
+      minutes: 120,
+      note: "Bổ sung mô tả công việc",
+    },
+  );
+  assert.equal(complement.status, 201, JSON.stringify(complement.body));
+  const resubmitted = await request(
+    `/timesheets/periods/${own.id}/submit`,
+    "POST",
+  );
+  assert.equal(resubmitted.status, 200, JSON.stringify(resubmitted.body));
+  assert.equal(resubmitted.body.status, "SUBMITTED");
+  cookie = adminCookie;
+  const approved = await request(
+    `/timesheets/periods/${own.id}/decision`,
+    "POST",
+    { decision: "APPROVE", note: "Đã bổ sung đầy đủ" },
+  );
+  assert.equal(approved.status, 200, JSON.stringify(approved.body));
+  assert.equal(approved.body.status, "APPROVED");
+  assert.equal(approved.body.decidedByName, ADMIN.displayName);
+  assert.equal(approved.body.totalMinutes, 660);
 });

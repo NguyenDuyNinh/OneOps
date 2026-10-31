@@ -6,6 +6,13 @@ import {
   dependencySpecifier,
   literalSpecifier,
 } from "./source-dependencies.mjs";
+import {
+  collectRegistryKeys,
+  moduleKind,
+  ownedDelegates,
+  ownedSchemas,
+  validateRegistry,
+} from "./module-registry.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const modules = JSON.parse(
   await fs.readFile(path.join(root, "modules.json"), "utf8"),
@@ -213,42 +220,40 @@ for (const feature of leaves) {
     if (!(await exists(`apps/web/src/features/${feature}/${sub}`)))
       failures.push(`Missing frontend folder ${feature}/${sub}`);
 }
-const namespaces = new Set(),
-  routes = new Set(),
-  models = new Set();
+failures.push(...validateRegistry(modules));
+const { namespaces } = collectRegistryKeys(modules);
 for (const module of modules) {
-  for (const [set, value, label] of [
-    [namespaces, module.databaseSchema, "namespace"],
-    [routes, module.route, "API route"],
-    [models, module.model, "model"],
-  ]) {
-    if (set.has(value)) failures.push(`Duplicate ${label}: ${value}`);
-    set.add(value);
-  }
   const backend = `apps/api/src/features/${module.feature}`,
     frontend = `apps/web/src/features/${module.feature}`;
-  for (const file of [
+  const artifacts = [
     `${backend}/${module.name}.controller.ts`,
     `${backend}/${module.name}.service.ts`,
     `${backend}/${module.name}.repository.ts`,
     `${backend}/${module.name}.module.ts`,
     `${backend}/dto/${module.name}.dto.ts`,
-    module.schema,
-    `${frontend}/components/page.tsx`,
-    `${frontend}/constants.ts`,
-    `${frontend}/types.ts`,
-    `${frontend}/api/client.ts`,
-  ])
+    ...ownedSchemas(module),
+  ];
+  if (module.frontend !== false)
+    artifacts.push(
+      `${frontend}/components/page.tsx`,
+      `${frontend}/constants.ts`,
+      `${frontend}/types.ts`,
+      `${frontend}/api/client.ts`,
+    );
+  for (const file of artifacts)
     if (!(await exists(file))) failures.push(`Missing owned artifact: ${file}`);
-  const schema = await fs.readFile(path.join(root, module.schema), "utf8");
-  if (!schema.includes(`@@schema("${module.databaseSchema}")`))
-    failures.push(`${module.name}: namespace mismatch`);
+  for (const schemaFile of ownedSchemas(module)) {
+    const schema = await fs.readFile(path.join(root, schemaFile), "utf8");
+    if (!schema.includes(`@@schema("${module.databaseSchema}")`))
+      failures.push(`${module.name}: namespace mismatch in ${schemaFile}`);
+  }
+  const delegates = new Set(ownedDelegates(module));
   const repo = await fs.readFile(
     path.join(root, backend, `${module.name}.repository.ts`),
     "utf8",
   );
   for (const [, delegate] of repo.matchAll(/\b(?:tx|this\.db)\.(\w+)/g))
-    if (delegate !== module.model[0].toLowerCase() + module.model.slice(1))
+    if (!delegates.has(delegate))
       failures.push(`${module.name}: foreign delegate ${delegate}`);
 }
 const base = await fs.readFile(
@@ -285,5 +290,5 @@ if (failures.length) {
   process.exitCode = 1;
 } else
   console.log(
-    `Boundaries valid: 4 main groups, ${leaves.length} symmetric feature folders, ${modules.length} existing data implementations. Unimplemented sections remain empty.`,
+    `Boundaries valid: 4 main groups, ${leaves.length} symmetric feature folders, ${modules.length} existing data implementations (${modules.filter((module) => moduleKind(module) === "records").length} record APIs, ${modules.filter((module) => moduleKind(module) === "resource").length} resource APIs), ${collectRegistryKeys(modules).models.size} owned models. Unimplemented sections remain empty.`,
   );
